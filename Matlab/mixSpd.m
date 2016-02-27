@@ -8,6 +8,11 @@ function [ spd ] = mixSpd( spds, coeffs )
 %
 %   Assumes coeffs to be column vector of coefficients.
 
+% Coeffs should be column vector, transpose if it's row vector
+if size(coeffs, 1) < size(coeffs, 2)
+    coeffs = coeffs';
+end
+
 spd = sum(bsxfun(@times,spds,coeffs));
 spd = spd.*(100/max(spd));
 

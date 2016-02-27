@@ -43,7 +43,7 @@ K_r = 100/Y_r;
         % Scale reflected luminance with with emitted luminanace
         % http://www.konicaminolta.com/instruments/knowledge/color/part4/02.html
         %         100
-        % K = -----------, Y_reflected = K * Y_spd
+        % K = -----------, Y_reflected = K * Y
         %      Y_emitted
         Y = K*Y; 
         

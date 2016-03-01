@@ -1,0 +1,7 @@
+- Fix CIE illuminant D
+- Test xyzToLab
+- CQS
+  - Chromatic adaptation
+- nRa
+- MCRI
+- Add CQS and MCRI to inspectSpd, replace Ra with nRa

@@ -1,8 +1,7 @@
-function [ CRI, CCT, Ri ] = spdToCri( testSpd, nSamples )
-%SPDTOCRI
+function [ CRI, Ri ] = spdToCri( testSpd, nSamples )
+%SPDTOCRI Calculate CIE CRI Ra, CCT and special color renderin indexes
 %   See http://onlinelibrary.wiley.com/doi/10.1002/9781119975595.app7/pdf
 %   CRI is combined color rendering index (mean)
-%   CCT is correlated color temperature
 %   Ri  is array of color rendering indexes for each test color
 
 % Load test colors if not yet loaded
@@ -23,19 +22,17 @@ end
 CCT = spdToCct(testSpd);
 
 % Calculate colorimetry
-[x_k, y_k, ~, ~, Y_k] = spdToXyz(testSpd); % CI1931 color coordinates
+[x_k, y_k, ~, ~, ~, ~, K_k] = spdToXyz(testSpd); % CI1931 color coordinates
 [u_k, v_k] = xyToUv(x_k, y_k); % CIE1960
 c_k = 1/v_k*(4-u_k-10*v_k); % c function for von Kries transformation
 d_k = (1.708*v_k + 0.404 - 1.481*u_k)/v_k; % d functoin for von Kries transformation
-K_k = 100/Y_k; % Reflected - emmited luminance factor
 
 % Generate reference illuminant and calculate colorimetry
 ref = refSpd(CCT);
-[x_r, y_r, ~, ~, Y_r] = spdToXyz(ref);
+[x_r, y_r, ~, ~, ~, ~, K_r] = spdToXyz(ref);
 [u_r, v_r] = xyToUv(x_r, y_r);
 c_r = (4-u_r-10*v_r)/v_r;
 d_r = (1.708*v_r + 0.404 - 1.481*u_r)/v_r;
-K_r = 100/Y_r;
 
     function [Ua, Va, Wa] = spdToUaVaWa( spd, K, isRef )
         % CIE1931

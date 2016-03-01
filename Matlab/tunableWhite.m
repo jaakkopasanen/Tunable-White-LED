@@ -38,10 +38,10 @@ warm = Yuji_BC2835L_2700K;
 %% Spectrum for cold white LED
 % Yuji BC2835L series
 % 1800 lm/m @ 6500K
-%cold = Yuji_BC2835L_5600K;
+cold = Yuji_BC2835L_5600K;
 % Yuji BC5730L series
 % 1000 lm/m @ 5600K
-cold = Yuji_BC5730L_5600K;
+%cold = Yuji_BC5730L_5600K;
 %cold = Yuji_BC5730L_6500K;
 % Yuji VTC5730L series
 % 1000 lm/m @ 5600K
@@ -63,7 +63,8 @@ for c = 0:resolution:1
     % Coefficients for warm white LED and red LED must sum to 1
     spd = mixSpd([red; warm], [1 - c; c]);
     % Calculate color rendering index and correlated color temperature
-    [cri, cct] = spdToCri(spd);
+    cri = spdToCri(spd);
+    cct = spdToCct(spd);
     % Add row to data matrix
     % Mixing only red and warm white, coefficient for cold white is zero
     mixingData(i,:) = [cct; cri; 1 - c; c; 0];

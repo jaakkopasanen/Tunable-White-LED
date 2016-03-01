@@ -1,5 +1,5 @@
 function [ spd ] = mixSpd( spds, coeffs )
-%SUMSPD Sum spectral power distributions and scale peak to 100
+%MIXSPD Sum spectral power distributions and scale peak to 100
 %   [spd] = mixSpd(spds, coeffs); returns mixed and scaled spectral power
 %   distibution
 %

@@ -29,8 +29,8 @@ end
 if T < 5000
     spd = planckSpd(T, :);
 else
+    % Incorrect!
     spd = cieIlluminantDSpd(T, :);
-    %spd = planckSpd(T, :);
 end
 
 end

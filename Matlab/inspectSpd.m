@@ -15,7 +15,8 @@ if isempty(cieRa95TestColorsRgb)
     load('cie.mat', 'cieRa95TestColorsRgb');
 end
 
-[CRI, CCT, R] = spdToCri(spd);
+[CRI, R] = spdToCri(spd);
+CCT = spdToCct(spd);
 CRI = round(CRI);
 ref = refSpd(CCT);
 ref = ref.*spdToLumens(spd)/spdToLumens(ref);

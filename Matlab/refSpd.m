@@ -1,4 +1,4 @@
-function [ spd ] = refSpd( T )
+function [ spd ] = refSpd( T, linearTransition )
 %REFSPD Generates reference spd
 %   spd = refSpd(T) for temperature T in Kelvins returns spectral power
 %   distribution of reference illumination source
@@ -26,11 +26,29 @@ if isempty(cieIlluminantDSpd)
     load('cie.mat', 'cieIlluminantDSpd');
 end
 
-if T < 5000
-    spd = planckSpd(T, :);
+if ~exist('linearTransition', 'var')
+    linearTransition = false;
+end
+
+% Use linear transition from Planckian radiator to IlluminantD in the CCT
+% range of 4500K to 5500K
+if linearTransition
+    if T < 4500 % Planckian radiator
+        spd = planckSpd(T, :);
+    elseif T < 5500 % Linear combination
+        c = (5500 - T) / 1000;
+        spd = mixSpd([planckSpd(T, :), cieIlluminantDSpd(T, :)], [1-c;c]);
+    else % Illuminant D
+        spd = cieIlluminantDSpd(T, :);
+    end
+    
+% Normal hard breakoff point in the 5000K
 else
-    % Incorrect!
-    spd = cieIlluminantDSpd(T, :);
+    if T < 5000
+        spd = planckSpd(T, :);
+    else
+        spd = cieIlluminantDSpd(T, :);
+    end
 end
 
 end

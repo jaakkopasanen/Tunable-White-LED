@@ -5,13 +5,13 @@ function [ CRI, Ri ] = spdToCri( testSpd, nSamples )
 %   Ri  is array of color rendering indexes for each test color
 
 % Load test colors if not yet loaded
-persistent cieRa95TestColors;
-if isempty(cieRa95TestColors)
+persistent cieRaTestColors;
+if isempty(cieRaTestColors)
     % Creates variable cieRa95TestColors
     % each row is spectral radiance factors for CIE CRI Ra95 test color
     % samples 1 - 14 respectively
     % Wavelengths span 380nm to 780nm with 5nm sampling
-    load('cie.mat', 'cieRa95TestColors');
+    load('cie.mat', 'cieRaTestColors');
 end
 
 if ~exist('nSamples', 'var')
@@ -82,10 +82,10 @@ Ri = zeros(1, nSamples);
 for i = 1:nSamples
     
     % Reference light
-    [UaVaWa_r(1), UaVaWa_r(2), UaVaWa_r(3)] = spdToUaVaWa(cieRa95TestColors(i,:).*ref, K_r, true);
+    [UaVaWa_r(1), UaVaWa_r(2), UaVaWa_r(3)] = spdToUaVaWa(cieRaTestColors(i,:).*ref, K_r, true);
     
     % Test light
-    [UaVaWa_k(1), UaVaWa_k(2), UaVaWa_k(3)]  = spdToUaVaWa(cieRa95TestColors(i,:).*testSpd, K_k, false);
+    [UaVaWa_k(1), UaVaWa_k(2), UaVaWa_k(3)]  = spdToUaVaWa(cieRaTestColors(i,:).*testSpd, K_k, false);
     
     % Color rendering index for currect test color sample
     dE = sqrt(sum((UaVaWa_r - UaVaWa_k).^2));

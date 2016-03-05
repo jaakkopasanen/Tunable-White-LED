@@ -37,7 +37,7 @@ if linearTransition
         spd = planckSpd(T, :);
     elseif T < 5500 % Linear combination
         c = (5500 - T) / 1000;
-        spd = mixSpd([planckSpd(T, :), cieIlluminantDSpd(T, :)], [1-c;c]);
+        spd = sum(bsxfun(@times,[planckSpd(T, :), cieIlluminantDSpd(T, :)],[c; 1-c]));
     else % Illuminant D
         spd = cieIlluminantDSpd(T, :);
     end

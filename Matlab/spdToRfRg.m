@@ -8,9 +8,12 @@ function [ Rf, Rg, Rfi, bins ] = spdToRfRg( spd )
 %   Rfi  := Special fidelity scores 1 to 99
 %   bins := CAM02-UCS color coordinates (a, b) for 16 color icon bins
 %           under  reference and test illuminants. Each row contains
-%           coordinates for one bin, first two columns are a and b
-%           coordinates for reference illuminant and the last two columns
-%           are coordinates for test illuminant: [a_r, b_r, a_t, b_t]
+%           coordinates for one bin, 1st and 2nd columns are a and b
+%           coordinates for reference illuminant, 3rd and 4th columns
+%           are coordinates for test illuminant, 5th and 6th are path
+%           coordinates for reference illuminant, 7th and 8th are path
+%           coordinates for test illuminant
+%           [a_r, b_r, a_t, b_t, x_r, y_r, x_t, y_t]
 
 % Load test colors if not yet loaded
 persistent TM3015TestColors;
@@ -76,7 +79,7 @@ MHEP = [
 dEi = zeros(1, 99);
 
 % Temporary bin data
-binData = zeros(99, 7);
+binData = zeros(99, 8);
 
     % Calculates CAM02-UCS color coordinates for spd
     function [ Jc, aMc, bMc ] = spdToJcaMcbMc(spd, XYZw)
@@ -211,6 +214,20 @@ binData = zeros(99, 7);
         bMc = Mc * sin(h * pi / 180);
     end
 
+    function [ t ] = calculateTheta( a, b )
+    % Calculates angle for color
+        t = atan(b / a);
+        if and(a < 0, b > 0)
+            t = t + pi;
+        end
+        if and(a < 0, b < 0)
+            t = t + pi;
+        end
+        if and(a > 0, b < 0)
+            t = t + 2*pi;
+        end
+    end
+
 % Calculate Jc, aMc, bMc and error for all test color samples
 for i = 1:99
     % Reference light
@@ -223,37 +240,26 @@ for i = 1:99
     dEi(i) = sqrt(sum((JcaMcbMc_r - JcaMcbMc_t).^2));
     
     % Bin data
-    theta = atan(JcaMcbMc_r(3) / JcaMcbMc_r(2));
-    if and(JcaMcbMc_r(2) < 0, JcaMcbMc_r(3) > 0)
-        theta = theta + pi;
-    end
-    if and(JcaMcbMc_r(2) < 0, JcaMcbMc_r(3) < 0)
-        theta = theta + pi;
-    end
-    if and(JcaMcbMc_r(2) > 0, JcaMcbMc_r(3) < 0)
-        theta = theta + 2*pi;
-    end
-    
+    theta = calculateTheta(JcaMcbMc_r(2), JcaMcbMc_r(3));
     binN = floor(((theta/2)/pi)*16) + 1;
     % Jc_r, aMc_r, bMc_r, Jc_t, aMc_t, bMc_t, binNumber
-    binData(i, :) = [JcaMcbMc_r JcaMcbMc_t binN];
+    binData(i, :) = [JcaMcbMc_r JcaMcbMc_t theta binN];
 end
 
 % Calculate average a, b coordinates for bins
-binCoords = zeros(17, 4);
+binCoords = zeros(17, 5);
 for i = 1:16
     % Select all test color samples from bin data where bin number is <i>
-    tcs = binData(binData(:, 7) == i, :);
-    % Bin average coordinates for: aMc_r, bMc_r, aMc_t, bMc_t
-    binCoords(i, :) = [mean(tcs(:, 2)) mean(tcs(:, 3)) mean(tcs(:, 5)) mean(tcs(:, 6))];
+    tcs = binData(binData(:, 8) == i, :);
+    % Bin average coordinates for: aMc_r, bMc_r, aMc_t, bMc_t, theta
+    binCoords(i, :) = [mean(tcs(:, 2)) mean(tcs(:, 3)) mean(tcs(:, 5)) mean(tcs(:, 6)) mean(tcs(:, 7))];
 end
-bins = binCoords(1:16, :);
 
 % Copy first bin coordinates to 17th bin for stats calculations
 binCoords(17, :) = binCoords(1, :);
 
 % Calculate bin, bin+1 stats from bin coordinates
-binStats = zeros(16, 4);
+binStats = zeros(16, 8);
 for i = 1:16
     % aMc_r difference between next sample and this one
     dar = binCoords(i + 1, 1) - binCoords(i, 1);
@@ -265,9 +271,24 @@ for i = 1:16
     % bMc_r average from next sample and this one
     mbt = (binCoords(i + 1, 4) + binCoords(i, 4)) / 2;
     
+    % Path for icon plot
+    theta = binCoords(i, 5);
+    x_r = cos(theta);
+    y_r = sin(theta);
+    %[x_r;y_r]
+    % da_rel = (aMc_t - aMc_r) / sqrt(aMc_r^2 + bMc_r^2)
+    da_rel = (binCoords(i, 3) - binCoords(i, 1)) / sqrt(binCoords(i, 1)^2 + binCoords(i, 2)^2);
+    % db_rel = (bMc_t - bMc_r) / sqrt(aMc_r^2 + bMc_r^2)
+    db_rel = (binCoords(i, 4) - binCoords(i, 2)) / sqrt(binCoords(i, 1)^2 + binCoords(i, 2)^2);
+    x_t = x_r + da_rel;
+    y_t = y_r + db_rel;
+    
     % Save stats for current bin
-    binStats(i, :) = [dar, mbr, dat, mbt];
+    binStats(i, :) = [dar, mbr, dat, mbt, x_r, y_r, x_t, y_t];
 end
+
+bins = binStats;
+bins(17, :) = bins(1, :);
 
 A0 = sum(bsxfun(@times, binStats(:, 1), binStats(:, 2)));
 A1 = sum(bsxfun(@times, binStats(:, 3), binStats(:, 4)));

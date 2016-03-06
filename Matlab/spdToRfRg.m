@@ -1,15 +1,16 @@
-function [ Rf, Rg, Rfi, bins_t, bins_r ] = spdToRfRg( spd )
+function [ Rf, Rg, Rfi, bins ] = spdToRfRg( spd )
 %SPDTORFRG Calculates TM-30-15 Rf and Rg metrics from SPD
 %Input:
 %   spd := Spectral power distribution from 380nm to 780nm sampled at 5nm
 %Output:
-%   Rf     := Fidelity score [0,100]
-%   Rg     := Gamut score
-%   Rfi    := Special fidelity scores 1 to 99
-%   bins_t := CAM02-UCS color coordinates (J, a, b) for 16 color icon bins
-%             under test illuminant. Each row contains one bin, 16 rows.
-%   bins_r := CAM02-UCS color coordinates (J, a, b) for 16 color icon bins
-%             under reference illuminant. Each row contains one bin, 16 rows.
+%   Rf   := Fidelity score [0,100]
+%   Rg   := Gamut score
+%   Rfi  := Special fidelity scores 1 to 99
+%   bins := CAM02-UCS color coordinates (a, b) for 16 color icon bins
+%           under  reference and test illuminants. Each row contains
+%           coordinates for one bin, first two columns are a and b
+%           coordinates for reference illuminant and the last two columns
+%           are coordinates for test illuminant: [a_r, b_r, a_t, b_t]
 
 % Load test colors if not yet loaded
 persistent TM3015TestColors;
@@ -73,6 +74,9 @@ MHEP = [
 
 % Errors
 dEi = zeros(1, 99);
+
+% Temporary bin data
+binData = zeros(99, 7);
 
     % Calculates CAM02-UCS color coordinates for spd
     function [ Jc, aMc, bMc ] = spdToJcaMcbMc(spd, XYZw)
@@ -217,18 +221,65 @@ for i = 1:99
     
     % Error
     dEi(i) = sqrt(sum((JcaMcbMc_r - JcaMcbMc_t).^2));
+    
+    % Bin data
+    theta = atan(JcaMcbMc_r(3) / JcaMcbMc_r(2));
+    if and(JcaMcbMc_r(2) < 0, JcaMcbMc_r(3) > 0)
+        theta = theta + pi;
+    end
+    if and(JcaMcbMc_r(2) < 0, JcaMcbMc_r(3) < 0)
+        theta = theta + pi;
+    end
+    if and(JcaMcbMc_r(2) > 0, JcaMcbMc_r(3) < 0)
+        theta = theta + 2*pi;
+    end
+    
+    binN = floor(((theta/2)/pi)*16) + 1;
+    % Jc_r, aMc_r, bMc_r, Jc_t, aMc_t, bMc_t, binNumber
+    binData(i, :) = [JcaMcbMc_r JcaMcbMc_t binN];
 end
+
+% Calculate average a, b coordinates for bins
+binCoords = zeros(17, 4);
+for i = 1:16
+    % Select all test color samples from bin data where bin number is <i>
+    tcs = binData(binData(:, 7) == i, :);
+    % Bin average coordinates for: aMc_r, bMc_r, aMc_t, bMc_t
+    binCoords(i, :) = [mean(tcs(:, 2)) mean(tcs(:, 3)) mean(tcs(:, 5)) mean(tcs(:, 6))];
+end
+bins = binCoords(1:16, :);
+
+% Copy first bin coordinates to 17th bin for stats calculations
+binCoords(17, :) = binCoords(1, :);
+
+% Calculate bin, bin+1 stats from bin coordinates
+binStats = zeros(16, 4);
+for i = 1:16
+    % aMc_r difference between next sample and this one
+    dar = binCoords(i + 1, 1) - binCoords(i, 1);
+    % bMc_r average from next sample and this one
+    mbr = (binCoords(i + 1, 2) + binCoords(i, 2)) / 2;
+    
+    % aMc_r difference between next sample and this one
+    dat = binCoords(i + 1, 3) - binCoords(i, 3);
+    % bMc_r average from next sample and this one
+    mbt = (binCoords(i + 1, 4) + binCoords(i, 4)) / 2;
+    
+    % Save stats for current bin
+    binStats(i, :) = [dar, mbr, dat, mbt];
+end
+
+A0 = sum(bsxfun(@times, binStats(:, 1), binStats(:, 2)));
+A1 = sum(bsxfun(@times, binStats(:, 3), binStats(:, 4)));
+Rg = A1 / A0 * 100;
 
 % Average error
 dEavg = mean(dEi);
 
 % Special fidelity scores
-Rfi = 10*log(exp((100 - cfactor .* dEi) / 10) + 1);
+Rfi = 10*log(exp((100 - cfactor .* dEi') / 10) + 1);
 
 % General fidelity score
 Rf = 10*log(exp((100 - cfactor * dEavg) / 10) + 1);
 
-Rg = 0;
-
 end
-

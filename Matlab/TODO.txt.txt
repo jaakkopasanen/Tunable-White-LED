@@ -1,4 +1,11 @@
-- Luminous efficacy and max lumens plots
-- Light output mixing based on perceived brightness and luminous efficiency function
-  - max 1000lm -> 10% = 100lm regardless of color temperature
+- 3 LED mixing by optimizing Rf/Rg figure angle and Rg=110 (check CQS Qa estimated from Rf,Rg)
+- Better Color icon background
+- Rf by hue plot to inspectSpd
+- Color distortion plot to inspectSpd
+- Fit coefficients' displays to command window to work with any polynomial degree
 - Calibration thingy with blinking (warm / cold+red), (warm+cold / cold+red), (warm / cold+red / warm%)
+  => Find out radiation power coefficients relative to warm LED
+- Max lumens plot
+- Light output mixing based on luminous efficacy
+  - max 1000lm -> 10% = 100lm regardless of color temperature
+  => Generate general power control function

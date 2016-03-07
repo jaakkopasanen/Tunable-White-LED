@@ -167,7 +167,9 @@ for i = 1:length(ccts)
     refs(i, :) = refSpd(CCT);
     % Scale reference spectrum so that luminosity outputs for mixed spectrum
     % and reference spectrum are equal
-    refs(i, :) = refs(i, :) .* spdToLER(spds(i, :)) / spdToLER(refs(i, :));
+    [~, ~, ~, ~, Y_spd] = spdToXyz(spds(i,:));
+    [~, ~, ~, ~, Y_ref] = spdToXyz(refs(i,:));
+    refs(i, :) = refs(i, :) * (Y_spd / Y_ref);
 end
 
 
@@ -229,7 +231,7 @@ axis([minCCT maxCCT 150 300]);
 grid on;
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
-%{
+%
 ccts = [2000, 2700, 4000, 5600];
 for i = 1:4
    inspectSpd(cctToSpd(ccts(i), [red; warm; cold], p));

@@ -37,7 +37,9 @@ CRI_1_14 = mean(Ri(1:14));
 % Reference spectrum
 CCT = spdToCct(spd);
 ref = refSpd(CCT);
-ref = ref.*spdToLumens(spd)/spdToLumens(ref);
+[~, ~, ~, ~, Y_spd] = spdToXyz(spd);
+[~, ~, ~, ~, Y_ref] = spdToXyz(ref);
+ref = ref.*(Y_spd/Y_ref);
 
 figure;
 

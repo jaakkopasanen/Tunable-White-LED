@@ -1,5 +1,4 @@
-- TM-30-15
 - Luminous efficacy and max lumens plots
 - Light output mixing based on perceived brightness and luminous efficiency function
   - max 1000lm -> 10% = 100lm regardless of color temperature
-- Calibration thingy with blinking warm white and cold+red
+- Calibration thingy with blinking (warm / cold+red), (warm+cold / cold+red), (warm / cold+red / warm%)

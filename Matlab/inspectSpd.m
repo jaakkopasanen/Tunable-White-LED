@@ -1,4 +1,4 @@
-function [ ] = inspectSpd( spd )
+function [ ] = inspectSpd( spd, supertitle )
 %INSPECTSPD Plot spd with reference spd scaled correctly
 %   inspectSpd(spd) plots spd with reference spd with same color
 %   temperature scaled so that both have same luminous output.
@@ -81,6 +81,13 @@ hold on;
 plot(bins(:,7), bins(:,8), 'r', bins(:,5), bins(:,6), 'k--', 'LineWidth', 2);
 set(gca, 'ydir', 'normal');
 legend('Test SPD', 'Reference SPD');
+title('Color Icon');
+hold off;
+
+% Supertitle
+if exist('supertitle', 'var')
+    suptitle(supertitle);
+end
 
 end
 

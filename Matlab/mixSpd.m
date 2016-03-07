@@ -14,7 +14,7 @@ if size(coeffs, 1) < size(coeffs, 2)
 end
 
 spd = sum(bsxfun(@times,spds,coeffs));
-spd = spd.*(100/max(spd));
+%spd = spd.*(1/max(spd));
 
 end
 

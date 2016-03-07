@@ -8,7 +8,7 @@ clear; t = cputime;
 %% Declare variables
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
 resolution = 0.05; % LED mixing coefficient resolution
-polynomialOrder = 3; % Order of polynomial fit function
+polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 800; % Minimum correlated color temperature
 maxCCT = 6800; % Maximum correlated color temperature
 
@@ -17,7 +17,7 @@ load('led_data.mat'); % Load spectrums for various LEDs
 
 %% Spectrum for red LED
 % Gaussian distribution from 380nm to 780nm with center in 630nm
-red = gaussmf(380:5:780, [20 630]).*100;
+red = gaussmf(380:5:780, [20 630]);
 %red = Yuji_Red;
 
 %% Spectrum for warm white LED
@@ -52,9 +52,9 @@ cold = Yuji_BC5730L_6500K;
 i = 1;
 % Data container for raw mixing results
 % Each row is result of one coefficient mixing pair
-% 1st column: CRI, 2nd column: CCT, columns 3 to 5: coefficients for red
-% LED, warm white LED and cold white LED, respectively
-mixingData = zeros(2/resolution + 1, 5);
+% 1st column: CRI, 2nd and 3rd columns: Rf and Rg, columns 4 to 6: 
+% coefficients for red LED, warm white LED and cold white LED, respectively
+mixingData = zeros(2/resolution + 1, 6);
 
 % Mix red and warm white LEDs
 % Iterate coefficient for warm LED from 0 to 1 with specified resolution
@@ -62,21 +62,23 @@ for c = 0:resolution:1
     % Create mix spectrum with mix factors
     % Coefficients for warm white LED and red LED must sum to 1
     spd = mixSpd([red; warm], [1 - c; c]);
-    % Calculate color rendering index and correlated color temperature
-    cri = spdToCri(spd);
+    % Calculate color rendering properties
+    %cri = spdToCri(spd);
+    [Rf, Rg] = spdToRfRg(spd);
     cct = spdToCct(spd);
     % Add row to data matrix
     % Mixing only red and warm white, coefficient for cold white is zero
-    mixingData(i,:) = [cct; cri; 1 - c; c; 0];
+    mixingData(i,:) = [cct; Rf; Rg; 1 - c; c; 0];
     i = i + 1;
 end
 % Mix warm white LED and cold white LED
 for c = resolution:resolution:1
     spd = mixSpd([warm; cold], [c; 1-c]);
-    cri = spdToCri(spd);
+    %cri = spdToCri(spd);
+    [Rf, Rg] = spdToRfRg(spd);
     cct = spdToCct(spd);
     % Mixing only warm white and cold white, coefficient for red is zero
-    mixingData(i,:) = [cct; cri; 0; c; 1-c];
+    mixingData(i,:) = [cct; Rf; Rg; 0; c; 1-c];
     i = i + 1;
 end
 
@@ -88,7 +90,7 @@ end
 % above warm white LED CCT
 p = zeros(2, polynomialOrder + 1);
 % Find the index of mixing data where warm white LED coefficient is 1
-[~, I] = max(mixingData(:, 4));
+[~, I] = max(mixingData(:, 5));
 % Last index of mixing data
 N = length(mixingData);
 % Find coefficients for polynomial fit function for warm LED
@@ -97,8 +99,12 @@ N = length(mixingData);
 % probably still be good enough to produce almost perfect results.
 % Check the results from plots generated in the end of this script. If the
 % fit is good, the CCT vs CRI and CCT vs coefficients plots are identical
-p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,4), polynomialOrder);
-p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,4), polynomialOrder);
+warmDataRedCct = mixingData(1:I,1);
+warmDataRed = mixingData(1:I,5);
+warmDataColdCct = mixingData(I+1:N,1);
+warmDataCold = mixingData(I+1:N,5);
+p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,5), polynomialOrder);
+p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,5), polynomialOrder);
 
 % Correlated color temperatures for each LED
 redT = spdToCct(red);
@@ -115,7 +121,12 @@ spds = zeros(length(ccts), length(L));
 % Uses black body radiator below 5000K and IlluminantD above 5000K
 refs = spds;
 % Color rendering indexes for each generated spectrum
-cris = zeros(length(ccts), 1);
+%cris = zeros(length(ccts), 1);
+% Rf and Rg for each spectrum
+Rfs = zeros(length(ccts), 1);
+Rgs = zeros(length(ccts), 1);
+% Luminous Efficacy Radiation functions
+LERs = zeros(length(ccts), 1);
 % Mixing coefficients based on polynomial fit functions
 % Each row contains mixing coefficients for respective spectrum
 % Columns red, warm white and cold white coefficients repectively
@@ -147,12 +158,16 @@ for i = 1:length(ccts)
     % Generate mixed spectrum with the generated mixing coefficients
     spds(i, :) = mixSpd([red; warm; cold], fitCoeffs(i, :)');
     % Save CRI for the generated spectrum
-    cris(i) = spdToCri(spds(i, :));
+    %cris(i) = spdToCri(spds(i, :));
+    % Save Rf and Rg for the generated spectrum
+    [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
+    % Save luminous efficacy of spectrum normalized to Y=100
+    LERs(i) = spdToLER(spds(i, :)); 
     % Generate reference spectrum with current CCT
     refs(i, :) = refSpd(CCT);
     % Scale reference spectrum so that luminosity outputs for mixed spectrum
     % and reference spectrum are equal
-    refs(i, :) = refs(i, :) .* spdToLumens(spds(i, :)) / spdToLumens(refs(i, :));
+    refs(i, :) = refs(i, :) .* spdToLER(spds(i, :)) / spdToLER(refs(i, :));
 end
 
 
@@ -167,22 +182,21 @@ xlabel('Wavelength (nm)');
 ylabel('CCT (K)');
 zlabel('Relative LED Power');
 title('SPD mesh');
-axis([380 780 minCCT maxCCT 0 100])
+axis([380 780 minCCT maxCCT 0 1])
 grid on;
 
-%% Plot CRI vs CCT
-% CCT on the X-axis, CRI on the Y-axis.
+%% Plot Rf and Rg vs CCT
+% CCT on the X-axis, Rf and Rg on the Y-axis.
 % Plot CCTs and CRIs from raw mixing data, and CCTs and CRIs from spectrums
 % generated with estimated mixing coefficients.
 % Both should be almost indetical, if they are not then the polynomial fit
 % failed somehow.
 subplot(2,2,2);
-plot(mixingData(:,1), mixingData(:,2), 'o', ccts, cris);
-axis([minCCT maxCCT 50 100]);
-title('CRI vs CCT');
+plot(mixingData(:,1), mixingData(:,2), 'o', ccts, Rfs, mixingData(:,1), mixingData(:,3), 'o', ccts, Rgs);
+axis([minCCT maxCCT 75 125]);
+title('Rf and Rg vs CCT');
 xlabel('CCT (K)');
-ylabel('CRI');
-legend('By raw coefficients', 'By fitted coefficients', 'Location', 'southeast');
+legend('Raw Rf', 'Fitted Rf', 'Raw Rg', 'Fitted Rg');
 grid on;
 
 %% Plot mixing coefficients
@@ -192,11 +206,11 @@ grid on;
 % mixing coefficients.
 % Both should be almost indetical, if they are not then the polynomial fit
 % failed somehow.
-subplot(2,2,[3,4]);
+subplot(2,2,3);
 plot(...
-    mixingData(:,1), mixingData(:,3), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
-    mixingData(:,1), mixingData(:,4), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
-    mixingData(:,1), mixingData(:,5), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
+    mixingData(:,1), mixingData(:,4), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
+    mixingData(:,1), mixingData(:,5), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
+    mixingData(:,1), mixingData(:,6), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
 title('LED power coefficients');
 legend('Red', 'Red fitted', 'Warm', 'Warm fitted', 'Cold', 'Cold fitted');
 xlabel('CCT (K)');
@@ -204,11 +218,23 @@ ylabel('Relative LED Power');
 axis([minCCT maxCCT -0.3 1.3]);
 grid on;
 
+%% Plot Luminous efficacy radiation function
+% CCT on the X-axis LER on the Y-axis
+subplot(2,2,4);
+plot(ccts, LERs);
+title('Luminous Efficacy');
+xlabel('CCT (K)');
+ylabel('LER (lm/w)');
+axis([minCCT maxCCT 150 300]);
+grid on;
+
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
+%{
 ccts = [2000, 2700, 4000, 5600];
 for i = 1:4
    inspectSpd(cctToSpd(ccts(i), [red; warm; cold], p));
 end
+%}
 
 %% Print coefficients for polynomial fit functions to command window
 format shorteng;

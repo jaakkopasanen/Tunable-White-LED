@@ -6,14 +6,16 @@ function [ Rf, Rg, Rfi, bins ] = spdToRfRg( spd )
 %   Rf   := Fidelity score [0,100]
 %   Rg   := Gamut score
 %   Rfi  := Special fidelity scores 1 to 99
-%   bins := CAM02-UCS color coordinates (a, b) for 16 color icon bins
-%           under  reference and test illuminants. Each row contains
-%           coordinates for one bin, 1st and 2nd columns are a and b
-%           coordinates for reference illuminant, 3rd and 4th columns
-%           are coordinates for test illuminant, 5th and 6th are path
-%           coordinates for reference illuminant, 7th and 8th are path
-%           coordinates for test illuminant
-%           [a_r, b_r, a_t, b_t, x_r, y_r, x_t, y_t]
+%   bins := Data for all 16 bins. Row per bin, columns are:
+%           a_r := a coordinate under reference illuminant
+%           b_r := b coordinate under reference illuminant
+%           a_t := a coordinate under test illuminant
+%           b_t := b coordinate under test illuminant
+%           x_r := Color icon path x coordinate under reference illuminant
+%           y_r := Color icon path y coordinate under reference illuminant
+%           x_t := Color icon path x coordinate under test illuminant
+%           y_t := Color icon path y coordinate under test illuminant
+%           Rfb := Average fidelity score
 
 % Load test colors if not yet loaded
 persistent TM3015TestColors;
@@ -77,9 +79,6 @@ MHEP = [
 
 % Errors
 dEi = zeros(1, 99);
-
-% Temporary bin data
-binData = zeros(99, 8);
 
     % Calculates CAM02-UCS color coordinates for spd
     function [ Jc, aMc, bMc ] = spdToJcaMcbMc(spd, XYZw)
@@ -228,6 +227,9 @@ binData = zeros(99, 8);
         end
     end
 
+% Temporary bin data
+binData = zeros(99, 9);
+
 % Calculate Jc, aMc, bMc and error for all test color samples
 for i = 1:99
     % Reference light
@@ -242,24 +244,27 @@ for i = 1:99
     % Bin data
     theta = calculateTheta(JcaMcbMc_r(2), JcaMcbMc_r(3));
     binN = floor(((theta/2)/pi)*16) + 1;
-    % Jc_r, aMc_r, bMc_r, Jc_t, aMc_t, bMc_t, binNumber
-    binData(i, :) = [JcaMcbMc_r JcaMcbMc_t theta binN];
+    % Jc_r, aMc_r, bMc_r, Jc_t, aMc_t, bMc_t, theta, binNumber dE
+    binData(i, :) = [JcaMcbMc_r JcaMcbMc_t theta binN dEi(i)];
 end
 
 % Calculate average a, b coordinates for bins
-binCoords = zeros(17, 5);
+binCoords = zeros(17, 6);
 for i = 1:16
     % Select all test color samples from bin data where bin number is <i>
     tcs = binData(binData(:, 8) == i, :);
-    % Bin average coordinates for: aMc_r, bMc_r, aMc_t, bMc_t, theta
-    binCoords(i, :) = [mean(tcs(:, 2)) mean(tcs(:, 3)) mean(tcs(:, 5)) mean(tcs(:, 6)) mean(tcs(:, 7))];
+
+    dE = mean(tcs(:, 9));
+    Rfb = 10 * log(exp((100 - cfactor * dE) / 10) + 1);
+    % Bin averages for: aMc_r, bMc_r, aMc_t, bMc_t, theta, Rf
+    binCoords(i, :) = [mean(tcs(:, 2)) mean(tcs(:, 3)) mean(tcs(:, 5)) mean(tcs(:, 6)) mean(tcs(:, 7)) Rfb];
 end
 
 % Copy first bin coordinates to 17th bin for stats calculations
 binCoords(17, :) = binCoords(1, :);
 
 % Calculate bin, bin+1 stats from bin coordinates
-binStats = zeros(16, 8);
+binStats = zeros(16, 9);
 for i = 1:16
     % aMc_r difference between next sample and this one
     dar = binCoords(i + 1, 1) - binCoords(i, 1);
@@ -283,8 +288,11 @@ for i = 1:16
     x_t = x_r + da_rel;
     y_t = y_r + db_rel;
     
+    % Average fidelity score
+    Rfb = binCoords(i, 6);
+    
     % Save stats for current bin
-    binStats(i, :) = [dar, mbr, dat, mbt, x_r, y_r, x_t, y_t];
+    binStats(i, :) = [dar, mbr, dat, mbt, x_r, y_r, x_t, y_t, Rfb];
 end
 
 bins = binStats;

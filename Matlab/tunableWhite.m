@@ -234,7 +234,7 @@ grid on;
 %
 ccts = [2000, 2700, 4000, 5600];
 for i = 1:4
-   inspectSpd(cctToSpd(ccts(i), [red; warm; cold], p));
+   inspectSpd(cctToSpd(ccts(i), [red; warm; cold], p), strcat([num2str(ccts(i)), 'K']));
 end
 %}
 

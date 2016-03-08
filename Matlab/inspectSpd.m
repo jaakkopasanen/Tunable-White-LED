@@ -101,7 +101,7 @@ hold off;
 subplot(2,3,5);
 imagesc([-1.5 1.5], [-1.5 1.5], flip(RgIconBG, 1));
 hold on;
-plot(bins(:,5), bins(:,6), 'k*-', bins(:,7), bins(:,8), 'ro-');
+plot(bins(:,5), bins(:,6), 'k--', bins(:,7), bins(:,8), 'r');
 set(gca, 'ydir', 'normal');
 grid on;
 legend('Reference SPD', 'Test SPD');
@@ -130,7 +130,7 @@ dHue_avg = dHue_sum / 16;
 set(gca, 'ydir', 'normal');
 grid on;
 legend('Reference hue', 'Test sample');
-title(strcat(['\Deltahue_a_v_g = ', num2str(dHue_avg, '%.1f'), ' deg']));
+title(strcat(['\Deltahue_a_v_g = ', num2str(dHue_avg, '%.1f'), char(176)]));
 hold off;
 
 % Supertitle

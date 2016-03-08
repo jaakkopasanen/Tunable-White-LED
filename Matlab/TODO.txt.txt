@@ -2,11 +2,12 @@
   - Rf,Rg angle?
   - Estimate CQS by Rf,Rg?
   - Simply multiply: Rf*Rg?
-- Better Color icon background
 - Better fit coefficients display
+
 - Calibration thingy with blinking (warm / cold+red), (warm+cold / cold+red), (warm / cold+red / warm%)
   => Find out radiation power coefficients relative to warm LED
 - Max lumens plot
+
 - Light output mixing based on perceived brightenss
   - max 1000lm -> 10% = 100lm regardless of color temperature
   => Generate general power control function

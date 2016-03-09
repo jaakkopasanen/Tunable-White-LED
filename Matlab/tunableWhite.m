@@ -11,6 +11,7 @@ resolution = 0.05; % LED mixing coefficient resolution
 polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 800; % Minimum correlated color temperature
 maxCCT = 6800; % Maximum correlated color temperature
+targetRg = 110; % Target color saturation for optimization
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
@@ -60,7 +61,7 @@ i = 1;
 % Each row is result of one coefficient mixing pair
 % 1st column: CRI, 2nd and 3rd columns: Rf and Rg, columns 4 to 6: 
 % coefficients for red LED, warm white LED and cold white LED, respectively
-mixingData = zeros(2/resolution + 1, 6);
+mixingData = zeros(2/resolution + 1, 4);
 
 % Mix red and warm white LEDs
 % Iterate coefficient for warm LED from 0 to 1 with specified resolution
@@ -70,24 +71,19 @@ for c = 0:resolution:1
     % Create mix spectrum with mix factors
     % Coefficients for warm white LED and red LED must sum to 1
     spd = mixSpd([red; warm], [b; a]);
-    % Calculate color rendering properties
-    %cri = spdToCri(spd);
-    [Rf, Rg] = spdToRfRg(spd);
     cct = spdToCct(spd);
     % Add row to data matrix
     % Mixing only red and warm white, coefficient for cold white is zero
-    mixingData(i,:) = [cct; Rf; Rg; b; a; 0];
+    mixingData(i,:) = [cct; b; a; 0];
     i = i + 1;
 end
 % Mix warm white LED and cold white LED
 for c = resolution:resolution:1
     a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
     spd = mixSpd([warm; cold], [a; b]);
-    %cri = spdToCri(spd);
-    [Rf, Rg] = spdToRfRg(spd);
     cct = spdToCct(spd);
     % Mixing only warm white and cold white, coefficient for red is zero
-    mixingData(i,:) = [cct; Rf; Rg; 0; a; b];
+    mixingData(i,:) = [cct; 0; a; b];
     i = i + 1;
 end
 
@@ -99,7 +95,7 @@ end
 % above warm white LED CCT
 p = zeros(2, polynomialOrder + 1);
 % Find the index of mixing data where warm white LED coefficient is 1
-[~, I] = max(mixingData(:, 5));
+[~, I] = max(mixingData(:, 3));
 % Last index of mixing data
 N = length(mixingData);
 % Find coefficients for polynomial fit function for warm LED
@@ -109,11 +105,11 @@ N = length(mixingData);
 % Check the results from plots generated in the end of this script. If the
 % fit is good, the CCT vs CRI and CCT vs coefficients plots are identical
 warmDataRedCct = mixingData(1:I,1);
-warmDataRed = mixingData(1:I,5);
+warmDataRed = mixingData(1:I,3);
 warmDataColdCct = mixingData(I+1:N,1);
-warmDataCold = mixingData(I+1:N,5);
-p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,5), polynomialOrder);
-p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,5), polynomialOrder);
+warmDataCold = mixingData(I+1:N,3);
+p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,3), polynomialOrder);
+p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,3), polynomialOrder);
 
 % Correlated color temperatures for each LED
 redT = spdToCct(red);
@@ -134,6 +130,7 @@ refs = spds;
 % Rf and Rg for each spectrum
 Rfs = zeros(length(ccts), 1);
 Rgs = zeros(length(ccts), 1);
+Rps = zeros(length(ccts), 1);
 % Luminous Efficacy Radiation functions
 LERs = zeros(length(ccts), 1);
 % Maximum lumens
@@ -172,6 +169,7 @@ for i = 1:length(ccts)
     %cris(i) = spdToCri(spds(i, :));
     % Save Rf and Rg for the generated spectrum
     [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
+    Rps(i) = RfRgToRp(Rfs(i), Rgs(i), targetRg);
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));
     % Save max lumens = LER * avgPower * (1 / maxCoeff)
@@ -199,9 +197,9 @@ figure;
 % failed somehow.
 subplot(2,2,1);
 plot(...
-    mixingData(:,1), mixingData(:,4), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
-    mixingData(:,1), mixingData(:,5), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
-    mixingData(:,1), mixingData(:,6), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
+    mixingData(:,1), mixingData(:,2), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
+    mixingData(:,1), mixingData(:,3), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
+    mixingData(:,1), mixingData(:,4), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
 title('LED power coefficients');
 legend('Red', 'Red fitted', 'Warm', 'Warm fitted', 'Cold', 'Cold fitted');
 xlabel('CCT (K)');
@@ -209,18 +207,16 @@ ylabel('Relative LED Power');
 axis([minCCT maxCCT -0.3 1.3]);
 grid on;
 
-%% Plot Rf and Rg vs CCT
-% CCT on the X-axis, Rf and Rg on the Y-axis.
+%% Plot Rf, Rg and Rp
 subplot(2,2,2);
-plot(ccts, Rfs, ccts, Rgs);
+plot(ccts, Rfs, ccts, Rgs, ccts, Rps);
 axis([minCCT maxCCT 75 125]);
-title('Rf and Rg');
+title('Fidelity, Gamut and Preference');
 xlabel('CCT (K)');
-legend('Rf', 'Rg');
+legend('Rf', 'Rg', 'Rp');
 grid on;
 
 %% Plot max lumens
-% CCT on the X-axis, max lumens on the Y-axis.
 subplot(2,2,3);
 plot(ccts, maxLumens);
 axis([minCCT maxCCT 0 max(maxLumens)*1.2]);
@@ -230,7 +226,6 @@ ylabel('Luminocity (lm/m)');
 grid on;
 
 %% Plot Luminous efficacy radiation function
-% CCT on the X-axis LER on the Y-axis
 subplot(2,2,4);
 plot(ccts, LERs);
 title('Luminous Efficacy of Radiation');

@@ -301,6 +301,11 @@ bins(17, :) = bins(1, :);
 A0 = sum(bsxfun(@times, binStats(:, 1), binStats(:, 2)));
 A1 = sum(bsxfun(@times, binStats(:, 3), binStats(:, 4)));
 Rg = A1 / A0 * 100;
+if isnan(Rg)
+    Rg = 150;
+end
+Rg = max(min(150, Rg), 50);
+
 
 % Average error
 dEavg = mean(dEi);

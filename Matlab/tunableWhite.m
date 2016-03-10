@@ -7,11 +7,12 @@ clear; t = cputime;
 
 %% Declare variables
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
-resolution = 0.05; % LED mixing coefficient resolution
+resolution = 0.1; % LED mixing coefficient resolution
 polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 800; % Minimum correlated color temperature
 maxCCT = 6800; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
+mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
@@ -55,7 +56,11 @@ redP = redL / spdToLER(red);
 warmP = warmL / spdToLER(warm);
 coldP = coldL / spdToLER(cold);
 
-%% Mix 2 leds: red and warm up to warm led CCT, warm and cold up to cold led CCT
+%% Correlated color temperatures for each LED
+redT = spdToCct(red);
+warmT = spdToCct(warm);
+coldT = spdToCct(cold);
+
 i = 1;
 % Data container for raw mixing results
 % Each row is result of one coefficient mixing pair
@@ -63,58 +68,108 @@ i = 1;
 % coefficients for red LED, warm white LED and cold white LED, respectively
 mixingData = zeros(2/resolution + 1, 4);
 
-% Mix red and warm white LEDs
-% Iterate coefficient for warm LED from 0 to 1 with specified resolution
-for c = 0:resolution:1
-    % Normalize factors
-    a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
-    % Create mix spectrum with mix factors
-    % Coefficients for warm white LED and red LED must sum to 1
-    spd = mixSpd([red; warm], [b; a]);
-    cct = spdToCct(spd);
-    % Add row to data matrix
-    % Mixing only red and warm white, coefficient for cold white is zero
-    mixingData(i,:) = [cct; b; a; 0];
-    i = i + 1;
-end
-% Mix warm white LED and cold white LED
-for c = resolution:resolution:1
-    a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
-    spd = mixSpd([warm; cold], [a; b]);
-    cct = spdToCct(spd);
-    % Mixing only warm white and cold white, coefficient for red is zero
-    mixingData(i,:) = [cct; 0; a; b];
-    i = i + 1;
-end
+%% Mix 2 leds: red and warm up to warm led CCT, warm and cold up to cold led CCT
+if mode == 2
+    % Mix red and warm white LEDs
+    % Iterate coefficient for warm LED from 0 to 1 with specified resolution
+    for c = 0:resolution:1
+        % Normalize factors
+        a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
+        % Create mix spectrum with mix factors
+        % Coefficients for warm white LED and red LED must sum to 1
+        spd = mixSpd([red; warm], [b; a]);
+        cct = spdToCct(spd);
+        % Add row to data matrix
+        % Mixing only red and warm white, coefficient for cold white is zero
+        mixingData(i,:) = [cct; b; a; 0];
+        i = i + 1;
+    end
+    % Mix warm white LED and cold white LED
+    for c = resolution:resolution:1
+        a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
+        spd = mixSpd([warm; cold], [a; b]);
+        cct = spdToCct(spd);
+        % Mixing only warm white and cold white, coefficient for red is zero
+        mixingData(i,:) = [cct; 0; a; b];
+        i = i + 1;
+    end
+    
+    % Fit polynomial functions for warm white LED
+    % p matrix contains coefficients for two polynomial functions, one per row
+    % First function is for estimating warm white LED coefficients for CCTs
+    % below warm white LED CCT
+    % Second function is for estimating warm white LED coefficients for CCTs
+    % above warm white LED CCT
+    p = zeros(2, polynomialOrder + 1);
+    % Find the index of mixing data where warm white LED coefficient is 1
+    [~, I] = max(mixingData(:, 3));
+    % Last index of mixing data
+    N = length(mixingData);
+    % Find coefficients for polynomial fit function for warm LED
+    % Please note that Matlab may give a warning for polynomial being badly
+    % conditioned. However this is most likely of no concern, since fit will
+    % probably still be good enough to produce almost perfect results.
+    % Check the results from plots generated in the end of this script. If the
+    % fit is good, the CCT vs CRI and CCT vs coefficients plots are identical
+    warmDataRedCct = mixingData(1:I,1);
+    warmDataRed = mixingData(1:I,3);
+    warmDataColdCct = mixingData(I+1:N,1);
+    warmDataCold = mixingData(I+1:N,3);
+    p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,3), polynomialOrder);
+    p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,3), polynomialOrder);
 
-%% Fit polynomial functions for warm white LED
-% p matrix contains coefficients for two polynomial functions, one per row
-% First function is for estimating warm white LED coefficients for CCTs
-% below warm white LED CCT
-% Second function is for estimating warm white LED coefficients for CCTs
-% above warm white LED CCT
-p = zeros(2, polynomialOrder + 1);
-% Find the index of mixing data where warm white LED coefficient is 1
-[~, I] = max(mixingData(:, 3));
-% Last index of mixing data
-N = length(mixingData);
-% Find coefficients for polynomial fit function for warm LED
-% Please note that Matlab may give a warning for polynomial being badly
-% conditioned. However this is most likely of no concern, since fit will
-% probably still be good enough to produce almost perfect results.
-% Check the results from plots generated in the end of this script. If the
-% fit is good, the CCT vs CRI and CCT vs coefficients plots are identical
-warmDataRedCct = mixingData(1:I,1);
-warmDataRed = mixingData(1:I,3);
-warmDataColdCct = mixingData(I+1:N,1);
-warmDataCold = mixingData(I+1:N,3);
-p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,3), polynomialOrder);
-p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,3), polynomialOrder);
-
-% Correlated color temperatures for each LED
-redT = spdToCct(red);
-warmT = spdToCct(warm);
-coldT = spdToCct(cold);
+%% Mix all 3 LEDs
+elseif mode == 3
+    rawMixingData = mixingData;
+    
+    for r = 1:-resolution:0
+        for w = 1-r:-resolution:0
+            spd = mixSpd([red; warm; cold], [r, w, 1-r-w]);
+            cct = spdToCct(spd);
+            rawMixingData(i, :) = [cct r w 1-r-w];
+            i = i + 1;
+        end
+    end
+    
+    cctBins = zeros(maxCCT / 100 - minCCT / 100 + 1, 3);
+    
+    for i = 1:length(rawMixingData)
+        % Skip results outside of CCT range
+        if rawMixingData(i, 1) < minCCT
+            continue;
+        elseif rawMixingData(i, 1) > maxCCT
+            continue;
+        end
+        
+        cctBin = floor(rawMixingData(i, 1) / 100) - minCCT / 100 + 1;
+        
+        spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
+        [Rf, Rg] = spdToRfRg(spd);
+        Rp = RfRgToRp(Rf, Rg, targetRg);
+        
+        if Rp > cctBins(cctBin, 2)
+            cctBins(cctBin, 2) = Rp;
+            cctBins(cctBin, 3) = i;
+        end
+        
+    end
+    
+    mixingData = zeros(length(cctBins), 4);
+    
+    for i = 1:length(cctBins)
+        if cctBins(i, 3) == 0
+            continue;
+        end
+        mixingData(i, :) = rawMixingData(cctBins(i, 3), :);
+    end
+    
+    % Delete rows without samples
+    mixingData(mixingData(:, 1) == 0, :) = [];
+    
+else
+    error('Mode must be 2 or 3');
+    return;
+end
 
 %% Generate spectrums for each 10 Kelvins based on polynomial fit functions
 % Array of CCTs
@@ -140,43 +195,27 @@ maxLumens = zeros(length(ccts), 1);
 % Columns red, warm white and cold white coefficients repectively
 fitCoeffs = zeros(length(ccts), 3);
 for i = 1:length(ccts)
-    CCT = ccts(i); % Save current CCT for convenience
-    
-    % CCT is below warm white CCT -> use first polynomial
-    if CCT < warmT
-        % Mixing coefficient for warm white LED limited between [0, 1]
-        warmC = min(max(polyval(p(1,:), CCT), 0), 1);
-        % Mixing coefficient for red LED is what is left from warm white
-        redC = 1 - warmC;
-        % Cold white LED is not powered on below warm white LED CCT
-        coldC = 0;
-        
-    % CCT is above warm whtie CCT -> use second polynomial
-    else 
-        % Red LED is not powered on above warm white LED CCT
-        redC = 0;
-        % Mixing coefficient for warm white LED limited between [0, 1]
-        warmC = min(max(polyval(p(2,:), CCT), 0), 1);
-        % Mixing coefficient for cold white LED is what is left from warm white
-        coldC = 1 - warmC;
-    end
-    
     % Save mixing coefficients
-    fitCoeffs(i, :) = [redC, warmC, coldC];
+    fitCoeffs(i, :) = estimateCoeffs(ccts(i), mixingData);
+    
     % Generate mixed spectrum with the generated mixing coefficients
     spds(i, :) = mixSpd([red; warm; cold], fitCoeffs(i, :)');
+    
     % Save CRI for the generated spectrum
     %cris(i) = spdToCri(spds(i, :));
     % Save Rf and Rg for the generated spectrum
     [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
     Rps(i) = RfRgToRp(Rfs(i), Rgs(i), targetRg);
+    
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));
+    
     % Save max lumens = LER * avgPower * (1 / maxCoeff)
     % 1 / maxCoeff is scaling to ensure LEDs are burned at maximum power
     maxLumens(i) = LERs(i) * sum(bsxfun(@times, fitCoeffs(i, :), [redP warmP coldP])) * (1 / max(fitCoeffs(i, :)));
+    
     % Generate reference spectrum with current CCT
-    refs(i, :) = refSpd(CCT);
+    refs(i, :) = refSpd(ccts(i));
     % Scale reference spectrum so that luminosity outputs for mixed spectrum
     % and reference spectrum are equal
     [~, ~, ~, ~, Y_spd] = spdToXyz(spds(i,:));
@@ -241,47 +280,5 @@ for i = 1:length(plotCcts)
    inspectSpd(cctToSpd(plotCcts(i), [red; warm; cold], p), strcat([num2str(plotCcts(i)), 'K']));
 end
 %}
-
-%% Print coefficients for polynomial fit functions to command window
-format shorteng;
-
-disp('------------------------------------------------------------------');
-disp('Coefficients A, B and C for estimating warm white LED mixing coefficients with given CCT');
-
-% From 0K to red LED CCT
-disp('------------------------------------------------------------------');
-disp(strcat(['T <= ', num2str(redT), 'K'])); format shorteng;
-disp('red = 1');
-disp('warm = 0');
-disp('cold = 0');
-
-% From red LED CCT to warm white LED CCT
-disp('------------------------------------------------------------------');
-disp(strcat(['830K < T < ', num2str(warmT), 'K'])); format shorteng;
-disp('red = 1 - warm');
-disp(strcat(['warm = (', num2str(p(1,1)), '*T^2) + (', num2str(p(1,2)), '*T) + (', num2str(p(1,3)), '*T) + (', num2str(p(1,4)), ')']));
-disp('cold = 0');
-
-% Warm white CCT
-disp('------------------------------------------------------------------');
-disp(strcat(['T == ', num2str(warmT), 'K'])); format shorteng;
-disp('red = 0');
-disp('warm = 1');
-disp('cold = 0');
-
-% From warm white LED CCT to cold white LED CCT
-disp('------------------------------------------------------------------');
-disp(strcat([num2str(warmT), 'K < T < ', num2str(coldT), 'K'])); format shorteng;
-disp('red = 0');
-disp(strcat(['warm = (', num2str(p(2,1)), '*T^3) + (', num2str(p(2,2)), '*T^2) + (', num2str(p(2,3)), '*T) + (', num2str(p(2,4)), ')']));
-disp('cold = 1 - warm');
-
-% Cold white CCT and above
-disp('------------------------------------------------------------------');
-disp(strcat(['T >= ', num2str(coldT), 'K'])); format shorteng;
-disp('red = 0');
-disp('warm = 0');
-disp('cold = 1');
-disp('------------------------------------------------------------------');
 
 %duration = cputime - t

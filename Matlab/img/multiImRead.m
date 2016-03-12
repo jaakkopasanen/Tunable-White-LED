@@ -6,7 +6,7 @@ for ii=1:nfiles
    spd = spd(:,:,1);
    spd = spd < 1;
    spd = sum(spd);
-   spd = spd.*100/max(spd);
+   spd = spd.*1/max(spd);
    spd = resample(spd, 81, length(spd));
    eval(strcat([fn(1:length(fn)-4), '=spd;']));
 end

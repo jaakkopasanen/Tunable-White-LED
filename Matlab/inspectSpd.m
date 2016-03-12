@@ -13,8 +13,9 @@ end
 
 % Load TM-30-15 bin hues
 persistent TM3015BinsRgb;
-if isempty(TM3015BinsRgb)
-    load('TM3015.mat', 'TM3015BinsRgb');
+persistent TM3015RfRgBg
+if or(isempty(TM3015BinsRgb), isempty(TM3015RfRgBg))
+    load('TM3015.mat', 'TM3015BinsRgb', 'TM3015RfRgBg');
 end
 
 % Background image for Rf Rg figure
@@ -39,6 +40,8 @@ CRI_1_14 = mean(Ri(1:14));
 
 % IES TM-30-15 Rf and Rg
 [Rf, Rg, ~, bins] = spdToRfRg(spd);
+Rp = RfRgToRp(Rf, Rg);
+Rp = round(Rp);
 
 % Reference spectrum
 CCT = spdToCct(spd);
@@ -87,13 +90,13 @@ hold off;
 
 % Plot Rf / Rg figure
 subplot(2,3,4);
-imagesc([50 100], [60 140], flip(RfRgBG, 1));
+imagesc([50 100], [60 140], TM3015RfRgBg);
 hold on;
-plot(Rf, Rg, 'r*');
+plot(Rf, Rg, 'ro', 'linewidth', 2);
 set(gca, 'ydir', 'normal');
 xlabel('Rf');
 ylabel('Rg');
-title(strcat(['Rf = ', num2str(round(Rf)), ', Rg = ', num2str(round(Rg))]));
+title(strcat(['Rf = ', num2str(round(Rf)), ', Rg = ', num2str(round(Rg)), ', Rp = ', num2str(Rp)]));
 grid on;
 hold off;
 

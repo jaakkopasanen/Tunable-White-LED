@@ -7,7 +7,7 @@ clear; t = cputime;
 
 %% Declare variables
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
-resolution = 0.1; % LED mixing coefficient resolution
+resolution = 0.01; % LED mixing coefficient resolution
 polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 800; % Minimum correlated color temperature
 maxCCT = 6800; % Maximum correlated color temperature
@@ -26,30 +26,34 @@ redL = 1600/5;
 %% Spectrum for warm white LED
 % Yuji BC2835L series
 % 1400 lm/m @ 2700K
-warm = Yuji_BC2835L_2700K; warmL = 700;
-%warm = Yuji_BC2835L_3200K;
+%warm = Yuji_BC2835L_2700K; warmL = 1400;
+%warm = Yuji_BC2835L_3200K; warmL = 1400;
 % Yuji BC5730L series
 % 900 lm/m @ 3200K
-%warm = Yuji_BC5730L_2700K;
-%warm = Yuji_BC5730L_3200K;
+%warm = Yuji_BC5730L_2700K; warmL = 900;
+%warm = Yuji_BC5730L_3200K; warmL = 900;
 % Yuji VTC5730L series
 % 800 lm/m @ 3200K
-%warm = Yuji_VTC5730_2700K;
-%warm = Yuji_VTC5730_3200K;
-% Gaussian distribution from 380nm to 780nm with center in 630nm
+%warm = Yuji_VTC5730_2700K; warmL = 800;
+%warm = Yuji_VTC5730_3200K; warmL = 800;
+% Generic 2700K
+%warm = Cree_A19; warmL = 350;
+% Generic 3000K
+warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
 % Yuji BC2835L series
 % 1800 lm/m @ 6500K
-%cold = Yuji_BC2835L_5600K;
+%cold = Yuji_BC2835L_5600K; coldL = 1800;
 % Yuji BC5730L series
 % 1000 lm/m @ 5600K
-%cold = Yuji_BC5730L_5600K;
-cold = Yuji_BC5730L_6500K; coldL = 1800*1.5;
+%cold = Yuji_BC5730L_5600K; coldL = 1000;
+%cold = Yuji_BC5730L_6500K; coldL = 1000;
 % Yuji VTC5730L series
 % 1000 lm/m @ 5600K
-%cold = Yuji_VTC5730_5600K;
-% Gaussian distribution from 380nm to 780nm with center in 630nm
+%cold = Yuji_VTC5730_5600K; coldL = 1000;
+% Generic 10000K
+cold = Generic_10000K; coldL = 700;
 
 %% Radiation powers for LEDs
 redP = redL / spdToLER(red);
@@ -131,7 +135,8 @@ elseif mode == 3
         end
     end
     
-    cctBins = zeros(maxCCT / 100 - minCCT / 100 + 1, 3);
+    binSize = 50;
+    cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
     
     for i = 1:length(rawMixingData)
         % Skip results outside of CCT range
@@ -141,7 +146,7 @@ elseif mode == 3
             continue;
         end
         
-        cctBin = floor(rawMixingData(i, 1) / 100) - minCCT / 100 + 1;
+        cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
         
         spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
         [Rf, Rg] = spdToRfRg(spd);
@@ -168,7 +173,6 @@ elseif mode == 3
     
 else
     error('Mode must be 2 or 3');
-    return;
 end
 
 %% Generate spectrums for each 10 Kelvins based on polynomial fit functions
@@ -210,9 +214,11 @@ for i = 1:length(ccts)
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));
     
-    % Save max lumens = LER * avgPower * (1 / maxCoeff)
-    % 1 / maxCoeff is scaling to ensure LEDs are burned at maximum power
-    maxLumens(i) = LERs(i) * sum(bsxfun(@times, fitCoeffs(i, :), [redP warmP coldP])) * (1 / max(fitCoeffs(i, :)));
+    % Save max lumens
+    K = 1 / max(fitCoeffs(i, :)); % Normalization factor
+    p = [redP warmP coldP]; % LED Powers
+    trueCoeffs = K*fitCoeffs(i, :).*p; % True mixing coeffs which takes LED powers into account
+    maxLumens(i) = LERs(i) * sum(bsxfun(@times, fitCoeffs(i, :), trueCoeffs));
     
     % Generate reference spectrum with current CCT
     refs(i, :) = refSpd(ccts(i));
@@ -259,7 +265,7 @@ grid on;
 subplot(2,2,3);
 plot(ccts, maxLumens);
 axis([minCCT maxCCT 0 max(maxLumens)*1.2]);
-title('Max Lumens per meter');
+title('Max Lumens per Meter');
 xlabel('CCT (K)');
 ylabel('Luminocity (lm/m)');
 grid on;
@@ -274,11 +280,11 @@ axis([minCCT maxCCT 150 300]);
 grid on;
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
-%{
-plotCcts = [2000, 2700, 4000, 5600];
+%
+plotCcts = [2800, 4000, 5600];
 for i = 1:length(plotCcts)
-   inspectSpd(cctToSpd(plotCcts(i), [red; warm; cold], p), strcat([num2str(plotCcts(i)), 'K']));
+   inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
 end
 %}
 
-%duration = cputime - t
+duration = cputime - t

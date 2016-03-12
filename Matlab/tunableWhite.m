@@ -9,56 +9,53 @@ clear; t = cputime;
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
 resolution = 0.01; % LED mixing coefficient resolution
 polynomialOrder = 5; % Order of polynomial fit function
-minCCT = 800; % Minimum correlated color temperature
-maxCCT = 6800; % Maximum correlated color temperature
+minCCT = 1000; % Minimum correlated color temperature
+maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
 mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
+inspectSpds = false; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
 
 %% Spectrum for red LED
 % Gaussian distribution from 380nm to 780nm with center in 630nm
-red = gaussmf(380:5:780, [20 630]);
-redL = 1600/5;
+red = gaussmf(380:5:780, [20 625]); redL = 700;
 %red = Yuji_Red;
 
+%% RGB model
+%red = gaussmf(380:5:780, [20 625]); redL = 130;
+%warm = gaussmf(380:5:780, [20 520]); warmL = 200;
+%cold = gaussmf(380:5:780, [20 465]); coldL = 80;
+
 %% Spectrum for warm white LED
-% Yuji BC2835L series
-% 1400 lm/m @ 2700K
-%warm = Yuji_BC2835L_2700K; warmL = 1400;
+warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
-% Yuji BC5730L series
-% 900 lm/m @ 3200K
 %warm = Yuji_BC5730L_2700K; warmL = 900;
 %warm = Yuji_BC5730L_3200K; warmL = 900;
-% Yuji VTC5730L series
-% 800 lm/m @ 3200K
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
-% Generic 2700K
-%warm = Cree_A19; warmL = 350;
-% Generic 3000K
-warm = Generic_3000K; warmL = 350;
+%warm = Cree_A19_2700K; warmL = 350;
+%warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
-% Yuji BC2835L series
-% 1800 lm/m @ 6500K
-%cold = Yuji_BC2835L_5600K; coldL = 1800;
-% Yuji BC5730L series
-% 1000 lm/m @ 5600K
+cold = Yuji_BC2835L_5600K; coldL = 1800; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
 %cold = Yuji_BC5730L_6500K; coldL = 1000;
-% Yuji VTC5730L series
-% 1000 lm/m @ 5600K
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
-% Generic 10000K
-cold = Generic_10000K; coldL = 700;
+%cold = Generic_6500K; coldL = 350;
+%cold = Generic_10000K; coldL = 350;
+
+%%
+supertitle = 'Red 625nm + BC2835L 2700K + Generic 6500K';
 
 %% Radiation powers for LEDs
-redP = redL / spdToLER(red);
-warmP = warmL / spdToLER(warm);
-coldP = coldL / spdToLER(cold);
+redLER = spdToLER(red);
+warmLER = spdToLER(warm);
+coldLER = spdToLER(cold);
+redP = redL / redLER;
+warmP = warmL / warmLER;
+coldP = coldL / coldLER;
 
 %% Correlated color temperatures for each LED
 redT = spdToCct(red);
@@ -198,6 +195,8 @@ maxLumens = zeros(length(ccts), 1);
 % Each row contains mixing coefficients for respective spectrum
 % Columns red, warm white and cold white coefficients repectively
 fitCoeffs = zeros(length(ccts), 3);
+% True coefficients needed for LED mixing with taking powers into account
+trueCoeffs = zeros(length(ccts), 3);
 for i = 1:length(ccts)
     % Save mixing coefficients
     fitCoeffs(i, :) = estimateCoeffs(ccts(i), mixingData);
@@ -214,11 +213,8 @@ for i = 1:length(ccts)
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));
     
-    % Save max lumens
-    K = 1 / max(fitCoeffs(i, :)); % Normalization factor
-    p = [redP warmP coldP]; % LED Powers
-    trueCoeffs = K*fitCoeffs(i, :).*p; % True mixing coeffs which takes LED powers into account
-    maxLumens(i) = LERs(i) * sum(bsxfun(@times, fitCoeffs(i, :), trueCoeffs));
+    % Save max lumens and true coefficients
+    [maxLumens(i), trueCoeffs(i, :)] = calMaxLumens([redLER; warmLER; coldLER], [redP; warmP; coldP], fitCoeffs(i, :)');
     
     % Generate reference spectrum with current CCT
     refs(i, :) = refSpd(ccts(i));
@@ -245,24 +241,37 @@ plot(...
     mixingData(:,1), mixingData(:,2), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
     mixingData(:,1), mixingData(:,3), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
     mixingData(:,1), mixingData(:,4), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
-title('LED power coefficients');
+title('Relative power coefficients');
 legend('Red', 'Red fitted', 'Warm', 'Warm fitted', 'Cold', 'Cold fitted');
 xlabel('CCT (K)');
 ylabel('Relative LED Power');
-axis([minCCT maxCCT -0.3 1.3]);
+axis([minCCT maxCCT -0.2 1.2]);
+grid on;
+
+%% Plot true coefficients
+subplot(2,2,2);
+plot(...
+    ccts, trueCoeffs(:,1), 'r',... % Red
+    ccts, trueCoeffs(:,2), 'g',... % Warm
+    ccts, trueCoeffs(:,3), 'b');   % Cold
+title('True power coefficients');
+legend('Red', 'Warm', 'Cold');
+xlabel('CCT (K)');
+ylabel('Relative LED Power');
+axis([minCCT maxCCT -0.2 1.2]);
 grid on;
 
 %% Plot Rf, Rg and Rp
-subplot(2,2,2);
+subplot(2,2,3);
 plot(ccts, Rfs, ccts, Rgs, ccts, Rps);
 axis([minCCT maxCCT 75 125]);
-title('Fidelity, Gamut and Preference');
+title('Fidelity (Rf), Saturation (Rg) and Preference (Rp)');
 xlabel('CCT (K)');
 legend('Rf', 'Rg', 'Rp');
 grid on;
 
 %% Plot max lumens
-subplot(2,2,3);
+subplot(2,2,4);
 plot(ccts, maxLumens);
 axis([minCCT maxCCT 0 max(maxLumens)*1.2]);
 title('Max Lumens per Meter');
@@ -271,6 +280,7 @@ ylabel('Luminocity (lm/m)');
 grid on;
 
 %% Plot Luminous efficacy radiation function
+%{
 subplot(2,2,4);
 plot(ccts, LERs);
 title('Luminous Efficacy of Radiation');
@@ -278,13 +288,17 @@ xlabel('CCT (K)');
 ylabel('LER (lm/w)');
 axis([minCCT maxCCT 150 300]);
 grid on;
+%}
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
-%
-plotCcts = [2800, 4000, 5600];
-for i = 1:length(plotCcts)
-   inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
+if inspectSpds
+    plotCcts = [2800, 4000, 5600];
+    for i = 1:length(plotCcts)
+       inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
+    end
 end
-%}
+
+% Set supertitle
+suptitle(supertitle);
 
 duration = cputime - t

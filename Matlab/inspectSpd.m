@@ -19,12 +19,6 @@ if or(isempty(TM3015BinsRgb), isempty(TM3015RfRgBg))
 end
 
 % Background image for Rf Rg figure
-persistent RfRgBG;
-if isempty(RfRgBG)
-    RfRgBG = imread('img/RfRg.PNG');
-end
-
-% Background image for Rf Rg figure
 persistent RgIconBG;
 if isempty(RgIconBG)
     RgIconBG = imread('img/RgIconBG.PNG');

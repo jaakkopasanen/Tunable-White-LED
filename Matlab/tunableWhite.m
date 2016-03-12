@@ -29,25 +29,25 @@ red = gaussmf(380:5:780, [20 625]); redL = 700;
 %cold = gaussmf(380:5:780, [20 465]); coldL = 80;
 
 %% Spectrum for warm white LED
-warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
+%warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
 %warm = Yuji_BC5730L_2700K; warmL = 900;
 %warm = Yuji_BC5730L_3200K; warmL = 900;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-%warm = Generic_3000K; warmL = 350;
+warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
-cold = Yuji_BC2835L_5600K; coldL = 1800; coldL = 2700;
+%cold = Yuji_BC2835L_5600K; coldL = 1700;% coldL = 900;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
 %cold = Yuji_BC5730L_6500K; coldL = 1000;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
-%cold = Generic_6500K; coldL = 350;
+cold = Generic_6500K; coldL = 1000;
 %cold = Generic_10000K; coldL = 350;
 
 %%
-supertitle = 'Red 625nm + BC2835L 2700K + Generic 6500K';
+supertitle = 'Red 625nm + Generic 3000K + Generic 6500K';
 
 %% Radiation powers for LEDs
 redLER = spdToLER(red);
@@ -253,7 +253,8 @@ subplot(2,2,2);
 plot(...
     ccts, trueCoeffs(:,1), 'r',... % Red
     ccts, trueCoeffs(:,2), 'g',... % Warm
-    ccts, trueCoeffs(:,3), 'b');   % Cold
+    ccts, trueCoeffs(:,3), 'b',... % Cold
+    'linewidth', 1.5);   
 title('True power coefficients');
 legend('Red', 'Warm', 'Cold');
 xlabel('CCT (K)');
@@ -263,7 +264,7 @@ grid on;
 
 %% Plot Rf, Rg and Rp
 subplot(2,2,3);
-plot(ccts, Rfs, ccts, Rgs, ccts, Rps);
+plot(ccts, Rfs, ccts, Rgs, ccts, Rps, 'linewidth', 1.5);
 axis([minCCT maxCCT 75 125]);
 title('Fidelity (Rf), Saturation (Rg) and Preference (Rp)');
 xlabel('CCT (K)');
@@ -272,7 +273,7 @@ grid on;
 
 %% Plot max lumens
 subplot(2,2,4);
-plot(ccts, maxLumens);
+plot(ccts, maxLumens, 'linewidth', 1.5);
 axis([minCCT maxCCT 0 max(maxLumens)*1.2]);
 title('Max Lumens per Meter');
 xlabel('CCT (K)');

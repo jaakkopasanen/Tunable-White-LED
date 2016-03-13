@@ -92,7 +92,7 @@ plot(Rf, Rg, 'ro', 'linewidth', 2);
 set(gca, 'ydir', 'normal');
 xlabel('Rf');
 ylabel('Rg');
-title(strcat(['Rf = ', num2str(round(Rf)), ', Rg = ', num2str(round(Rg)), ', Rp = ', num2str(Rp)]));
+title(strcat(['Rf = ', num2str(round(Rf)), ', Rg = ', num2str(round(Rg)), ', Rp = ', num2str(round(Rp))]));
 grid on;
 hold off;
 

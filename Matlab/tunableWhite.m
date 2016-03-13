@@ -12,8 +12,8 @@ polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 1000; % Minimum correlated color temperature
 maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
-mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
-inspectSpds = true; % Inspect SPDs for various color temperatures?
+mode = 2; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
+inspectSpds = false; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
@@ -29,25 +29,25 @@ red = gaussmf(380:5:780, [20 625]); redL = 320;
 %cold = gaussmf(380:5:780, [20 465]); coldL = 80;
 
 %% Spectrum for warm white LED
-warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
+%warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
 %warm = Yuji_BC5730L_2700K; warmL = 900;
 %warm = Yuji_BC5730L_3200K; warmL = 900;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-%warm = Generic_3000K; warmL = 350;
+warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
-cold = Yuji_BC2835L_5600K; coldL = 1700;% coldL = 900;
+%cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
-%cold = Yuji_BC5730L_6500K; coldL = 1000;
+cold = Yuji_BC5730L_6500K; coldL = 1000;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
 %cold = Generic_6500K; coldL = 1000;
 %cold = Generic_10000K; coldL = 350;
 
 %%
-supertitle = 'Red 625nm + Generic 3000K + Generic 6500K';
+supertitle = '625nm + Generic 3000K + BC5730L 6500K';
 
 %% Radiation powers for LEDs
 redLER = spdToLER(red);
@@ -65,9 +65,9 @@ coldT = spdToCct(cold);
 i = 1;
 % Data container for raw mixing results
 % Each row is result of one coefficient mixing pair
-% 1st column: CRI, 2nd and 3rd columns: Rf and Rg, columns 4 to 6: 
-% coefficients for red LED, warm white LED and cold white LED, respectively
-mixingData = zeros(2/resolution + 1, 4);
+% 1st column: CCT, columns 2 to 4: coefficients for red LED, warm white LED
+% and cold white LED, respectively
+rawMixingData = zeros(2/resolution + 1, 4);
 
 %% Mix 2 leds: red and warm up to warm led CCT, warm and cold up to cold led CCT
 if mode == 2
@@ -82,7 +82,7 @@ if mode == 2
         cct = spdToCct(spd);
         % Add row to data matrix
         % Mixing only red and warm white, coefficient for cold white is zero
-        mixingData(i,:) = [cct; b; a; 0];
+        rawMixingData(i,:) = [cct; b; a; 0];
         i = i + 1;
     end
     % Mix warm white LED and cold white LED
@@ -91,37 +91,12 @@ if mode == 2
         spd = mixSpd([warm; cold], [a; b]);
         cct = spdToCct(spd);
         % Mixing only warm white and cold white, coefficient for red is zero
-        mixingData(i,:) = [cct; 0; a; b];
+        rawMixingData(i,:) = [cct; 0; a; b];
         i = i + 1;
     end
-    
-    % Fit polynomial functions for warm white LED
-    % p matrix contains coefficients for two polynomial functions, one per row
-    % First function is for estimating warm white LED coefficients for CCTs
-    % below warm white LED CCT
-    % Second function is for estimating warm white LED coefficients for CCTs
-    % above warm white LED CCT
-    p = zeros(2, polynomialOrder + 1);
-    % Find the index of mixing data where warm white LED coefficient is 1
-    [~, I] = max(mixingData(:, 3));
-    % Last index of mixing data
-    N = length(mixingData);
-    % Find coefficients for polynomial fit function for warm LED
-    % Please note that Matlab may give a warning for polynomial being badly
-    % conditioned. However this is most likely of no concern, since fit will
-    % probably still be good enough to produce almost perfect results.
-    % Check the results from plots generated in the end of this script. If the
-    % fit is good, the CCT vs CRI and CCT vs coefficients plots are identical
-    warmDataRedCct = mixingData(1:I,1);
-    warmDataRed = mixingData(1:I,3);
-    warmDataColdCct = mixingData(I+1:N,1);
-    warmDataCold = mixingData(I+1:N,3);
-    p(1, :) = polyfit(mixingData(1:I,1), mixingData(1:I,3), polynomialOrder);
-    p(2, :) = polyfit(mixingData(I+1:N,1), mixingData(I+1:N,3), polynomialOrder);
 
 %% Mix all 3 LEDs
 elseif mode == 3
-    rawMixingData = mixingData;
     
     for r = 1:-resolution:0
         for w = 1-r:-resolution:0
@@ -132,44 +107,48 @@ elseif mode == 3
         end
     end
     
-    binSize = 100;
-    cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
-    
-    for i = 1:length(rawMixingData)
-        % Skip results outside of CCT range
-        if rawMixingData(i, 1) < minCCT
-            continue;
-        elseif rawMixingData(i, 1) > maxCCT
-            continue;
-        end
-        
-        cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
-        
-        spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
-        [Rf, Rg, Rp] = spdToRfRg(spd);
-        
-        if Rp > cctBins(cctBin, 2)
-            cctBins(cctBin, 2) = Rp;
-            cctBins(cctBin, 3) = i;
-        end
-        
-    end
-    
-    mixingData = zeros(length(cctBins), 4);
-    
-    for i = 1:length(cctBins)
-        if cctBins(i, 3) == 0
-            continue;
-        end
-        mixingData(i, :) = rawMixingData(cctBins(i, 3), :);
-    end
-    
-    % Delete rows without samples
-    mixingData(mixingData(:, 1) == 0, :) = [];
-    
 else
     error('Mode must be 2 or 3');
 end
+
+%% Select best results
+binSize = 100;
+cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
+
+% Iterate all bins and find largest Rp for each bin
+for i = 1:length(rawMixingData)
+    % Skip results outside of CCT range
+    if rawMixingData(i, 1) < minCCT
+        continue;
+    elseif rawMixingData(i, 1) > maxCCT
+        continue;
+    end
+
+    % CCT bin index
+    cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
+
+    spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
+    [Rf, Rg, Rp] = spdToRfRg(spd);
+
+    % Greates Rp so far -> update
+    if Rp > cctBins(cctBin, 2)
+        cctBins(cctBin, 2) = Rp;
+        cctBins(cctBin, 3) = i;
+    end
+
+end
+
+% Copy to mixing data
+mixingData = zeros(length(cctBins), 4);
+for i = 1:length(cctBins)
+    if cctBins(i, 3) == 0
+        continue;
+    end
+    mixingData(i, :) = rawMixingData(cctBins(i, 3), :);
+end
+
+% Remove empty bins
+mixingData(mixingData(:, 1) == 0, :) = [];
 
 %% Generate spectrums for each 10 Kelvins based on polynomial fit functions
 % Array of CCTs
@@ -263,7 +242,7 @@ grid on;
 %% Plot Rf, Rg and Rp
 subplot(2,2,3);
 plot(ccts, Rfs, ccts, Rgs, ccts, Rps, 'linewidth', 1.5);
-axis([minCCT maxCCT 75 125]);
+axis([minCCT maxCCT 50 125]);
 title('Fidelity (Rf), Saturation (Rg) and Preference (Rp)');
 xlabel('CCT (K)');
 legend('Rf', 'Rg', 'Rp');
@@ -290,7 +269,7 @@ grid on;
 %}
 
 %% Set supertitle
-if ~exist('supertitle', 'var')
+if ~isempty('supertitle')
     suptitle(supertitle);
 end
 

@@ -342,6 +342,6 @@ maxRf = 100 - abs(100 - Rg);
 d = sqrt((1*(targetRg - Rg))^2 + (1*(maxRf - Rf))^2);
 % Force to range [0,100]. No negative values!
 Rp = 10*log(exp((100 - 2 * d) / 10) + 1);
-Rp = Rp * sqrt((1 - source(4) / 100));
+Rp = Rp * (1 - source(4) / 100);
 
 end

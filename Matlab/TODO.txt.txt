@@ -1,5 +1,3 @@
-- 2 LED mixing mode
-
 - Calibration thingy with blinking (warm / cold+red), (warm+cold / cold+red), (warm / cold+red / warm%)
   => Find out radiation power coefficients relative to warm LED
 

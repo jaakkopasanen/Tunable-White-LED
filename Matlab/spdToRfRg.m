@@ -1,21 +1,21 @@
-function [ Rf, Rg, Rfi, bins ] = spdToRfRg( spd )
+function [ Rf, Rg, Rp, bins ] = spdToRfRg( spd )
 %SPDTORFRG Calculates TM-30-15 Rf and Rg metrics from SPD
 %Input:
 %   spd := Spectral power distribution from 380nm to 780nm sampled at 5nm
 %Output:
-%   Rf   := Fidelity score [0,100]
-%   Rg   := Gamut score
-%   Rfi  := Special fidelity scores 1 to 99
-%   bins := Data for all 16 bins. Row per bin, columns are:
-%           a_r := a coordinate under reference illuminant
-%           b_r := b coordinate under reference illuminant
-%           a_t := a coordinate under test illuminant
-%           b_t := b coordinate under test illuminant
-%           x_r := Color icon path x coordinate under reference illuminant
-%           y_r := Color icon path y coordinate under reference illuminant
-%           x_t := Color icon path x coordinate under test illuminant
-%           y_t := Color icon path y coordinate under test illuminant
-%           Rfb := Average fidelity score
+%   Rf     := Fidelity score [0,100]
+%   Rg     := Gamut score
+%   Rp     := Preference score
+%   bins   := Data for all 16 bins. Row per bin, columns are:
+%             a_r := a coordinate under reference illuminant
+%             b_r := b coordinate under reference illuminant
+%             a_t := a coordinate under test illuminant
+%             b_t := b coordinate under test illuminant
+%             x_r := Color icon path x coordinate under reference illuminant
+%             y_r := Color icon path y coordinate under reference illuminant
+%             x_t := Color icon path x coordinate under test illuminant
+%             y_t := Color icon path y coordinate under test illuminant
+%             Rfb := Average fidelity score
 
 % Load test colors if not yet loaded
 persistent TM3015TestColors;
@@ -31,9 +31,10 @@ cfactor = 7.54;
 
 % Calculate colorimetry for test illuminant
 [~, ~, ~, X_t, Y_t, Z_t, K_t] = spdToXyz(spd, 10);
-X_t = K_t * X_t;
-Y_t = K_t * Y_t;
-Z_t = K_t * Z_t;
+XYZ_t = K_t * [X_t;Y_t;Z_t];
+%X_t = K_t * X_t;
+%Y_t = K_t * Y_t;
+%Z_t = K_t * Z_t;
 
 % Calculate correlated color temperature CCT
 cct = spdToCct(spd);
@@ -43,9 +44,10 @@ ref = refSpd(cct, true);
 
 % Calculate colorimetry for reference illuminant
 [~, ~, ~, X_r, Y_r, Z_r, K_r] = spdToXyz(ref, 10);
-X_r = K_r * X_r;
-Y_r = K_r * Y_r;
-Z_r = K_r * Z_r;
+XYZ_r = K_r * [X_r;Y_r;Z_r];
+%X_r = K_r * X_r;
+%Y_r = K_r * Y_r;
+%Z_r = K_r * Z_r;
 
 % Parameters for CIECAM02 color appearance model
 LA = 100; % Absolute luminance
@@ -64,24 +66,34 @@ else
 end
 
 % Chromatic adaptation transformation matrix
-MCAT02 = [
-    0.7328	0.4296	-0.1624
-    -0.7036	1.6975	0.0061
-    0.0030	0.0136	0.9834
-];
+persistent MCAT02;
+if isempty(MCAT02)
+    MCAT02 = [
+        0.7328	0.4296	-0.1624
+        -0.7036	1.6975	0.0061
+        0.0030	0.0136	0.9834
+    ];
+end
 
 % Hunt-Point-Estévez transformation matrix
-MHEP = [
-    0.3897	0.6890	-0.0787
-    -0.2298	1.1834	0.0464
-    0.0000	0.0000	1.0000
-];
+persistent MHEP
+if isempty(MHEP)
+    MHEP = [
+        0.38971 0.68898 -0.07868
+        -0.22981 1.1834 0.04641
+        0 0 1
+    ];
+end
 
 % Errors
 dEi = zeros(1, 99);
 
     % Calculates CAM02-UCS color coordinates for spd
-    function [ Jc, aMc, bMc ] = spdToJcaMcbMc(spd, XYZw)
+    function [ JcaMcbMc, C ] = spdToJcaMcbMc(spd, XYZw, debug)
+        if ~exist('debug', 'var')
+            debug = false;
+        end
+        
         % CIE 1931
         [~, ~, ~, X, Y, Z] = spdToXyz(spd, 10);
         XYZ = [X; Y; Z];
@@ -93,7 +105,7 @@ dEi = zeros(1, 99);
         Ncb = Nbb;
         z = 1.48 + sqrt(n);
         RGB = MCAT02 * XYZ; % Column vector!
-        RGBw = MCAT02 * XYZw'; % Column vector!
+        RGBw = MCAT02 * XYZw; % Column vector!
         RGBc = [
             (D * XYZw(2) / RGBw(1) + 1 - D) * RGB(1)
             (D * XYZw(2) / RGBw(2) + 1 - D) * RGB(2)
@@ -138,6 +150,7 @@ dEi = zeros(1, 99);
         end
         
         % H
+        %{
         if h < 20.14
             H = 385.9+(14.1*(h)/0.856)/((h)/0.856+(20.14-h)/0.8);
         elseif h < 90
@@ -150,6 +163,7 @@ dEi = zeros(1, 99);
             H = 300+(85.9*(h-237.53)/1.2)/((h-237.53)/1.2+(360-h)/0.856);
         end
         
+        %
         Hc = zeros(4,1);
         % Hc (red)
         if H > 300
@@ -189,28 +203,29 @@ dEi = zeros(1, 99);
         else
             Hc(4) = 0;
         end
+        %}
         
-        % INCORRECT INCORRECT INCORRECT INCORRECT INCORRECT
         e = ((12500/13) * Nc * Ncb) * (cos((h*pi/180) + 2) + 3.8);
         A = (2*RGBpa(1) + RGBpa(2) + 1/20*RGBpa(3) - 0.305) * Nbb;
         Aw = (2*RGBpaw(1) + RGBpaw(2) + 1/20*RGBpaw(3) - 0.305) * Nbb;
         J = 100*(A / Aw)^(c * z);
-        Q = (4 / c) * sqrt(J / 100) * (Aw + 4) * FL^0.25;
+        %Q = (4 / c) * sqrt(J / 100) * (Aw + 4) * FL^0.25;
         t = (e * sqrt(a^2 + b^2)) / (RGBpa(1) + RGBpa(2) + 21/20*RGBpa(3));
         C = (t^0.9) * sqrt(J / 100) * ((1.64 - 0.29^n)^0.73);
         M = C * FL^0.25;
-        s = 100 * sqrt(M / Q);
-        ac = C * cos(pi * h / 180);
-        bc = C * sin(pi * h / 180);
-        aM = M * cos(pi * h / 180);
-        bM = M * sin(pi * h / 180);
-        as = s * cos(pi * h / 180);
-        bs = s * sin(pi * h / 180);
+        %s = 100 * sqrt(M / Q);
+        %ac = C * cos(pi * h / 180);
+        %bc = C * sin(pi * h / 180);
+        %aM = M * cos(pi * h / 180);
+        %bM = M * sin(pi * h / 180);
+        %as = s * cos(pi * h / 180);
+        %bs = s * sin(pi * h / 180);
         % CAM02UCS
         Jc = (1 + 100*0.007) * J / (1 + 0.007 * J);
         Mc = (1 / 0.0228) * log(1 + 0.0228 * M);
         aMc = Mc * cos(h * pi / 180);
         bMc = Mc * sin(h * pi / 180);
+        JcaMcbMc = [Jc aMc bMc];
     end
 
     function [ t ] = calculateTheta( a, b )
@@ -233,10 +248,10 @@ binData = zeros(99, 9);
 % Calculate Jc, aMc, bMc and error for all test color samples
 for i = 1:99
     % Reference light
-    [JcaMcbMc_r(1), JcaMcbMc_r(2), JcaMcbMc_r(3)] = spdToJcaMcbMc(TM3015TestColors(i,:).*ref.*K_r, [X_r, Y_r, Z_r]);
+    JcaMcbMc_r = spdToJcaMcbMc(TM3015TestColors(i,:).*ref.*K_r, XYZ_r);
     
     % Test light
-    [JcaMcbMc_t(1), JcaMcbMc_t(2), JcaMcbMc_t(3)] = spdToJcaMcbMc(TM3015TestColors(i,:).*spd.*K_t, [X_t, Y_t, Z_t]);
+    JcaMcbMc_t = spdToJcaMcbMc(TM3015TestColors(i,:).*spd.*K_t, XYZ_t);
     
     % Error
     dEi(i) = sqrt(sum((JcaMcbMc_r - JcaMcbMc_t).^2));
@@ -247,6 +262,10 @@ for i = 1:99
     % Jc_r, aMc_r, bMc_r, Jc_t, aMc_t, bMc_t, theta, binNumber dE
     binData(i, :) = [JcaMcbMc_r JcaMcbMc_t theta binN dEi(i)];
 end
+
+% Source
+source = zeros(1, 4);
+[source(1:3), source(4)] = spdToJcaMcbMc(spd.*K_t, XYZ_r);
 
 % Calculate average a, b coordinates for bins
 binCoords = zeros(17, 6);
@@ -304,16 +323,25 @@ Rg = A1 / A0 * 100;
 if isnan(Rg)
     Rg = 150;
 end
+% Gamut score
 Rg = max(min(150, Rg), 50);
-
 
 % Average error
 dEavg = mean(dEi);
 
 % Special fidelity scores
-Rfi = 10*log(exp((100 - cfactor .* dEi') / 10) + 1);
+%Rfi = 10*log(exp((100 - cfactor .* dEi') / 10) + 1);
 
 % General fidelity score
 Rf = 10*log(exp((100 - cfactor * dEavg) / 10) + 1);
+
+% Preference score
+targetRg = 110;
+maxRf = 100 - abs(100 - Rg);
+% Distance from (maxRf,targetRg) point with weighting for Rg
+d = sqrt((1*(targetRg - Rg))^2 + (1*(maxRf - Rf))^2);
+% Force to range [0,100]. No negative values!
+Rp = 10*log(exp((100 - 2 * d) / 10) + 1);
+Rp = Rp * sqrt((1 - source(4) / 100));
 
 end

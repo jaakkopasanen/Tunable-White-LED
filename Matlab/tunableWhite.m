@@ -13,14 +13,14 @@ minCCT = 1000; % Minimum correlated color temperature
 maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
 mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
-inspectSpds = false; % Inspect SPDs for various color temperatures?
+inspectSpds = true; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
 
 %% Spectrum for red LED
 % Gaussian distribution from 380nm to 780nm with center in 630nm
-red = gaussmf(380:5:780, [20 625]); redL = 700;
+red = gaussmf(380:5:780, [20 625]); redL = 320;
 %red = Yuji_Red;
 
 %% RGB model
@@ -29,21 +29,21 @@ red = gaussmf(380:5:780, [20 625]); redL = 700;
 %cold = gaussmf(380:5:780, [20 465]); coldL = 80;
 
 %% Spectrum for warm white LED
-%warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
+warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
 %warm = Yuji_BC5730L_2700K; warmL = 900;
 %warm = Yuji_BC5730L_3200K; warmL = 900;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-warm = Generic_3000K; warmL = 350;
+%warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
-%cold = Yuji_BC2835L_5600K; coldL = 1700;% coldL = 900;
+cold = Yuji_BC2835L_5600K; coldL = 1700;% coldL = 900;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
 %cold = Yuji_BC5730L_6500K; coldL = 1000;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
-cold = Generic_6500K; coldL = 1000;
+%cold = Generic_6500K; coldL = 1000;
 %cold = Generic_10000K; coldL = 350;
 
 %%
@@ -132,7 +132,7 @@ elseif mode == 3
         end
     end
     
-    binSize = 50;
+    binSize = 100;
     cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
     
     for i = 1:length(rawMixingData)
@@ -146,8 +146,7 @@ elseif mode == 3
         cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
         
         spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
-        [Rf, Rg] = spdToRfRg(spd);
-        Rp = RfRgToRp(Rf, Rg, targetRg);
+        [Rf, Rg, Rp] = spdToRfRg(spd);
         
         if Rp > cctBins(cctBin, 2)
             cctBins(cctBin, 2) = Rp;
@@ -207,8 +206,7 @@ for i = 1:length(ccts)
     % Save CRI for the generated spectrum
     %cris(i) = spdToCri(spds(i, :));
     % Save Rf and Rg for the generated spectrum
-    [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
-    Rps(i) = RfRgToRp(Rfs(i), Rgs(i), targetRg);
+    [Rfs(i), Rgs(i), Rps(i)] = spdToRfRg(spds(i, :));
     
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));
@@ -291,6 +289,11 @@ axis([minCCT maxCCT 150 300]);
 grid on;
 %}
 
+%% Set supertitle
+if ~exist('supertitle', 'var')
+    suptitle(supertitle);
+end
+
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if inspectSpds
     plotCcts = [2800, 4000, 5600];
@@ -298,8 +301,5 @@ if inspectSpds
        inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
     end
 end
-
-% Set supertitle
-suptitle(supertitle);
 
 duration = cputime - t

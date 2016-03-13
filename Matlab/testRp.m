@@ -4,7 +4,7 @@ x = 1; y = 1;
 for Rg = 60:0.2:140
     x = 1;
     for Rf = 50:0.2:100-abs(100-Rg)
-        Rp(y,x) = RfRgToRp(Rf,Rg);
+        Rp(y,x) = RfRgToRp(Rf,Rg,110);
         x = x + 1;
     end
     y = y + 1;

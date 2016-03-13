@@ -33,9 +33,7 @@ CRI = mean(Ri(1:8));
 CRI_1_14 = mean(Ri(1:14));
 
 % IES TM-30-15 Rf and Rg
-[Rf, Rg, ~, bins] = spdToRfRg(spd);
-Rp = RfRgToRp(Rf, Rg);
-Rp = round(Rp);
+[Rf, Rg, Rp, bins] = spdToRfRg(spd);
 
 % Reference spectrum
 CCT = spdToCct(spd);
@@ -44,6 +42,10 @@ ref = refSpd(CCT);
 [~, ~, ~, ~, Y_ref] = spdToXyz(ref);
 ref = ref.*(Y_spd/Y_ref);
 
+% Light color
+%rgb = spdToRgb(spd)
+
+%figure('Color', rgb);
 figure;
 
 % Plot spectrum with reference spectrum
@@ -96,8 +98,10 @@ hold off;
 
 % Plot color icon
 subplot(2,3,5);
+% Background
 imagesc([-1.5 1.5], [-1.5 1.5], flip(RgIconBG, 1));
 hold on;
+% Reference, Test
 plot(bins(:,5), bins(:,6), 'k--', bins(:,7), bins(:,8), 'r');
 set(gca, 'ydir', 'normal');
 grid on;
@@ -111,19 +115,26 @@ imagesc([-1.5 1.5], [-1.5 1.5], flip(RgIconBG, 1));
 hold on;
 dHue_sum = 0;
 for i = 1:16
+    % Reference hue line
     plot([0 bins(i,5)*2], [0 bins(i,6)*2], 'k--');
+    % Test coordinates
     plot(bins(i,7), bins(i,8), 'ro');
+    % Reference hue angle
     theta_r = atan2d(bins(i,6), bins(i,5));
     if theta_r < 0
         theta_r = theta_r + 180;
     end
+    % Test hue angle
     theta_t = atan2d(bins(i,8), bins(i,7));
     if theta_t < 0
         theta_t = theta_t + 180;
     end
+    % Cumulate error
     dHue_sum = dHue_sum + abs(theta_r - theta_t);
 end
+% Average hue angle error
 dHue_avg = dHue_sum / 16;
+
 set(gca, 'ydir', 'normal');
 grid on;
 legend('Reference hue', 'Test sample');

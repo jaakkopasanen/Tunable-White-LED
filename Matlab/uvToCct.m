@@ -5,15 +5,12 @@ function [ CCT, d_min ] = uvToCct( u, v )
 %
 %   [CCT, d_min] = uvToCct(u, v) also return minimum distance
 
-persistent planckLocusUv;
-if isempty(planckLocusUv)
-    % Creates variable planckLocusUv
-    % each row is u,v coordinate pair for planck locus temperature
-    % temperatures range from 1K to 25000K with 1K sampling rate
-    load('cie.mat', 'planckLocusUv');
+persistent cie1960PlanckianLocusUv;
+if isempty(cie1960PlanckianLocusUv)
+    load('cie.mat', 'cie1960PlanckianLocusUv');
 end
 
-[d_min, CCT] = min(sqrt((planckLocusUv(:,1) - u).^2 + (planckLocusUv(:,2) - v).^2));
+[d_min, CCT] = min(sqrt((cie1960PlanckianLocusUv(:,1) - u).^2 + (cie1960PlanckianLocusUv(:,2) - v).^2));
 
 end
 

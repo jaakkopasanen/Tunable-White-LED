@@ -52,8 +52,8 @@ XYZ_r = K_r * [X_r;Y_r;Z_r];
 % Parameters for CIECAM02 color appearance model
 LA = 100; % Absolute luminance
 Yb = 20; % Relative background luminance
-Did = 1;
-F = 1; % Adaptation factor
+Did = 1; % Adaptation mode: <1 := Manual, 1 := Full adaptation, 2 := Partial adaptation
+F = 1; % Adaptation factor, 1 for bright environment
 c = 0.69; % Impact of surrounding
 Nc = 1; % Chromatic induction factor
 % Degree of adaptation (discounting)

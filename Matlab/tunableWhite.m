@@ -13,7 +13,7 @@ minCCT = 1000; % Minimum correlated color temperature
 maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
 mode = 2; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
-inspectSpds = false; % Inspect SPDs for various color temperatures?
+inspectSpds = true; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
@@ -29,25 +29,25 @@ red = gaussmf(380:5:780, [20 625]); redL = 320;
 %cold = gaussmf(380:5:780, [20 465]); coldL = 80;
 
 %% Spectrum for warm white LED
-%warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
+warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
 %warm = Yuji_BC5730L_2700K; warmL = 900;
 %warm = Yuji_BC5730L_3200K; warmL = 900;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-warm = Generic_3000K; warmL = 350;
+%warm = Generic_3000K; warmL = 350;
 
 %% Spectrum for cold white LED
-%cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
+cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
-cold = Yuji_BC5730L_6500K; coldL = 1000;
+%cold = Yuji_BC5730L_6500K; coldL = 1000;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
 %cold = Generic_6500K; coldL = 1000;
 %cold = Generic_10000K; coldL = 350;
 
 %%
-supertitle = '625nm + Generic 3000K + BC5730L 6500K';
+supertitle = '625nm + BC2835L 2700K + BC2835L 5600K';
 
 %% Radiation powers for LEDs
 redLER = spdToLER(red);

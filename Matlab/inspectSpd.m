@@ -43,10 +43,15 @@ ref = refSpd(CCT);
 ref = ref.*(Y_spd/Y_ref);
 
 % Light color
-%rgb = spdToRgb(spd)
-
-%figure('Color', rgb);
-figure;
+rgb = spdToRgb(spd);
+if max(rgb) > 1
+    rgb = rgb.*(1/max(rgb));
+end
+if min(rgb) < 0
+    rgb = rgb - min(rgb);
+end
+figure('Color', rgb);
+%figure;
 
 % Plot spectrum with reference spectrum
 subplot(2,3,1);

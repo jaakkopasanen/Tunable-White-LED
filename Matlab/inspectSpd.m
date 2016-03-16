@@ -38,18 +38,14 @@ CRI_1_14 = mean(Ri(1:14));
 % Reference spectrum
 CCT = spdToCct(spd);
 ref = refSpd(CCT);
-[~, ~, ~, X, Y, Z] = spdToXyz(spd);
+[x, y, z, X, Y, Z] = spdToXyz(spd);
 [~, ~, ~, ~, Y_ref] = spdToXyz(ref);
 ref = ref.*(Y/Y_ref);
 
 % Light color
-rgb = spdToRgb(spd);
-if max(rgb) > 1
-    rgb = rgb.*(1/max(rgb));
-end
-if min(rgb) < 0
-    rgb = rgb - min(rgb);
-end
+rgb = xyz2rgb([x y z]);
+rgb = rgb.*(1/max(rgb));
+rgb(rgb < 0) = 0;
 figure('Color', rgb);
 %figure;
 

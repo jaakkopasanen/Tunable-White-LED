@@ -275,7 +275,7 @@ end
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if inspectSpds
-    plotCcts = [2800, 4000, 5600];
+    plotCcts = [1500, 2000, 2800, 4000, 5600];
     for i = 1:length(plotCcts)
        inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
     end

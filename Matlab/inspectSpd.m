@@ -38,9 +38,9 @@ CRI_1_14 = mean(Ri(1:14));
 % Reference spectrum
 CCT = spdToCct(spd);
 ref = refSpd(CCT);
-[~, ~, ~, ~, Y_spd] = spdToXyz(spd);
+[~, ~, ~, X, Y, Z] = spdToXyz(spd);
 [~, ~, ~, ~, Y_ref] = spdToXyz(ref);
-ref = ref.*(Y_spd/Y_ref);
+ref = ref.*(Y/Y_ref);
 
 % Light color
 rgb = spdToRgb(spd);
@@ -63,6 +63,7 @@ title(strcat(['CCT = ', num2str(CCT), 'K']));
 grid on;
 
 % Plot CRI bar graph
+%{
 subplot(2,3,2);
 hold on;
 for i = 1:length(Ri)
@@ -74,6 +75,12 @@ axis([0.5 14.5 0 100]);
 title(strcat(['CRI = ', num2str(round(CRI)), ', CRI_1_-_1_4 = ', num2str(round(CRI_1_14))]));
 grid on;
 hold off;
+%}
+
+% Plot CIE 1976 chromacity diagram
+ax = subplot(2,3,2);
+plotCieLuv([X Y Z], true, ax);
+title('CIE 1976 UCS');
 
 % Plot Rf by hue
 subplot(2,3,3);

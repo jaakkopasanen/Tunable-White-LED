@@ -1,11 +1,10 @@
-function [ Rf, Rg, Rp, bins ] = spdToRfRg( spd )
+function [ Rf, Rg, bins ] = spdToRfRg( spd, cct )
 %SPDTORFRG Calculates TM-30-15 Rf and Rg metrics from SPD
 %Input:
 %   spd := Spectral power distribution from 380nm to 780nm sampled at 5nm
 %Output:
 %   Rf     := Fidelity score [0,100]
 %   Rg     := Gamut score
-%   Rp     := Preference score
 %   bins   := Data for all 16 bins. Row per bin, columns are:
 %             a_r := a coordinate under reference illuminant
 %             b_r := b coordinate under reference illuminant
@@ -37,7 +36,9 @@ XYZ_t = K_t * [X_t;Y_t;Z_t];
 %Z_t = K_t * Z_t;
 
 % Calculate correlated color temperature CCT
-cct = spdToCct(spd);
+if ~exist('cct', 'var')
+    cct = spdToCct(spd);
+end
 
 % Calculate reference spd
 ref = refSpd(cct, true);
@@ -263,10 +264,6 @@ for i = 1:99
     binData(i, :) = [JcaMcbMc_r JcaMcbMc_t theta binN dEi(i)];
 end
 
-% Source
-source = zeros(1, 4);
-[source(1:3), source(4)] = spdToJcaMcbMc(spd.*K_t, XYZ_r);
-
 % Calculate average a, b coordinates for bins
 binCoords = zeros(17, 6);
 for i = 1:16
@@ -334,14 +331,5 @@ dEavg = mean(dEi);
 
 % General fidelity score
 Rf = 10*log(exp((100 - cfactor * dEavg) / 10) + 1);
-
-% Preference score
-targetRg = 110;
-maxRf = 100 - abs(100 - Rg);
-% Distance from (maxRf,targetRg) point with weighting for Rg
-d = sqrt((1*(targetRg - Rg))^2 + (1*(maxRf - Rf))^2);
-% Force to range [0,100]. No negative values!
-Rp = 10*log(exp((100 - 2 * d) / 10) + 1);
-%Rp = Rp * (1 - source(4) / 100);
 
 end

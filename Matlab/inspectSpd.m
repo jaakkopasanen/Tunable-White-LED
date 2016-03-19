@@ -28,18 +28,19 @@ end
 L = 380:5:780;
 
 % CIE CRI
-[~, Ri] = spdToCri(spd, 14);
-CRI = mean(Ri(1:8));
-CRI_1_14 = mean(Ri(1:14));
+%[~, Ri] = spdToCri(spd, 14);
+%CRI = mean(Ri(1:8));
+%CRI_1_14 = mean(Ri(1:14));
 
 % IES TM-30-15 Rf and Rg
-[Rf, Rg, Rp, bins] = spdToRfRg(spd);
+[Rf, Rg, bins] = spdToRfRg(spd);
 
 % Reference spectrum
 CCT = spdToCct(spd);
 ref = refSpd(CCT);
 [x, y, z, X, Y, Z] = spdToXyz(spd);
-[~, ~, ~, ~, Y_ref] = spdToXyz(ref);
+[~, ~, ~, X_ref, Y_ref, Z_ref] = spdToXyz(ref);
+[goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], 110);
 ref = ref.*(Y/Y_ref);
 
 % Light color
@@ -76,10 +77,10 @@ hold off;
 % Plot CIE 1976 chromacity diagram
 ax = subplot(2,3,2);
 plotCieLuv([X Y Z], true, ax);
-title('CIE 1976 UCS');
+title(strcat(['\Deltau''v'' = ', num2str(duv)]));
 
 % Plot Rf by hue
-subplot(2,3,3);
+subplot(2,3,4);
 hold on;
 hold on;
 for i = 1:16
@@ -88,19 +89,19 @@ for i = 1:16
    set(h, 'EdgeColor', TM3015BinsRgb(i, :));
 end
 axis([0.5 16.5 0 100]);
-title('Rf by hue');
+title(strcat(['Rf = ', num2str(round(Rf))]));
 grid on;
 hold off;
 
 % Plot Rf / Rg figure
-subplot(2,3,4);
+subplot(2,3,6);
 imagesc([50 100], [60 140], TM3015RfRgBg);
 hold on;
 plot(Rf, Rg, 'ro', 'linewidth', 2);
 set(gca, 'ydir', 'normal');
 xlabel('Rf');
 ylabel('Rg');
-title(strcat(['Rf = ', num2str(round(Rf)), ', Rg = ', num2str(round(Rg)), ', Rp = ', num2str(round(Rp))]));
+title(strcat(['Goodness = ', num2str(round(goodness))]));
 grid on;
 hold off;
 
@@ -114,11 +115,11 @@ plot(bins(:,5), bins(:,6), 'k--', bins(:,7), bins(:,8), 'r');
 set(gca, 'ydir', 'normal');
 grid on;
 legend('Reference SPD', 'Test SPD');
-title('Color Icon');
+title(strcat(['Rg = ', num2str(round(Rg))]));
 hold off;
 
 % Plot hue distortion
-subplot(2,3,6);
+subplot(2,3,3);
 imagesc([-1.5 1.5], [-1.5 1.5], flip(RgIconBG, 1));
 hold on;
 dHue_sum = 0;

@@ -12,7 +12,7 @@ polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 1000; % Minimum correlated color temperature
 maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
-mode = 2; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
+mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
 inspectSpds = true; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
@@ -20,13 +20,11 @@ load('led_data.mat'); % Load spectrums for various LEDs
 
 %% Spectrum for red LED
 % Gaussian distribution from 380nm to 780nm with center in 630nm
-red = gaussmf(380:5:780, [20 625]); redL = 320;
+red = gaussmf(380:5:780, [20 670]); redL = 100;
+green = gaussmf(380:5:780, [20 530]); greenL = 320;
+blue = gaussmf(380:5:780, [20 455]); blueL = 320;
 %red = Yuji_Red;
 
-%% RGB model
-%red = gaussmf(380:5:780, [20 625]); redL = 130;
-%warm = gaussmf(380:5:780, [20 520]); warmL = 200;
-%cold = gaussmf(380:5:780, [20 465]); coldL = 80;
 
 %% Spectrum for warm white LED
 warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
@@ -36,18 +34,20 @@ warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-%warm = Generic_3000K; warmL = 350;
+%warm = Generic_3000K; warmL = 300;
+%warm = mixSpd([Yuji_BC2835L_2700K;green],[0.9;0.1]); warmL = 700;
+%warm = mixSpd([Yuji_BC2835L_2700K;green],[0.8;0.2]); warmL = 700;
 
 %% Spectrum for cold white LED
 cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
 %cold = Yuji_BC5730L_6500K; coldL = 1000;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
-%cold = Generic_6500K; coldL = 1000;
+%cold = Generic_6500K; coldL = 200;
 %cold = Generic_10000K; coldL = 350;
 
 %%
-supertitle = '625nm + BC2835L 2700K + BC2835L 5600K';
+supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
 
 %% Radiation powers for LEDs
 redLER = spdToLER(red);
@@ -68,6 +68,9 @@ i = 1;
 % 1st column: CCT, columns 2 to 4: coefficients for red LED, warm white LED
 % and cold white LED, respectively
 rawMixingData = zeros(2/resolution + 1, 4);
+
+%%
+initializedIn = cputime - t
 
 %% Mix 2 leds: red and warm up to warm led CCT, warm and cold up to cold led CCT
 if mode == 2
@@ -111,6 +114,9 @@ else
     error('Mode must be 2 or 3');
 end
 
+%%
+rawMixingIn = cputime - t
+
 %% Select best results
 binSize = 100;
 cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
@@ -128,11 +134,14 @@ for i = 1:length(rawMixingData)
     cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
 
     spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
-    [Rf, Rg, Rp] = spdToRfRg(spd);
-
+    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
+    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1)));
+    [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
+    goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg);
+    
     % Greates Rp so far -> update
-    if Rp > cctBins(cctBin, 2)
-        cctBins(cctBin, 2) = Rp;
+    if goodness > cctBins(cctBin, 2)
+        cctBins(cctBin, 2) = goodness;
         cctBins(cctBin, 3) = i;
     end
 
@@ -150,6 +159,22 @@ end
 % Remove empty bins
 mixingData(mixingData(:, 1) == 0, :) = [];
 
+% Add Warm white
+if mode == 2
+    for i = 2:length(mixingData)
+        if isequal(mixingData(i, 2:4), [0 1 0])
+            break;
+        end
+        if mixingData(i - 1, 1) < warmT && mixingData(i, 1) > warmT
+            mixingData = [mixingData(1:i-1,:); [warmT 0 1 0]; mixingData(i:end, :)];
+            break;
+        end
+    end
+end
+
+%%
+binSelectionIn = cputime - t
+
 %% Generate spectrums for each 10 Kelvins based on polynomial fit functions
 % Array of CCTs
 ccts = minCCT:10:maxCCT;
@@ -164,7 +189,8 @@ refs = spds;
 % Rf and Rg for each spectrum
 Rfs = zeros(length(ccts), 1);
 Rgs = zeros(length(ccts), 1);
-Rps = zeros(length(ccts), 1);
+goodnesses = zeros(length(ccts), 1);
+duvs = zeros(length(ccts), 1);
 % Luminous Efficacy Radiation functions
 LERs = zeros(length(ccts), 1);
 % Maximum lumens
@@ -183,25 +209,26 @@ for i = 1:length(ccts)
     spds(i, :) = mixSpd([red; warm; cold], fitCoeffs(i, :)');
     
     % Save CRI for the generated spectrum
-    %cris(i) = spdToCri(spds(i, :));
     % Save Rf and Rg for the generated spectrum
-    [Rfs(i), Rgs(i), Rps(i)] = spdToRfRg(spds(i, :));
-    
+    [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
+    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
+    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(ccts(i)));
+    [goodnesses(i), duvs(i)] = lightGoodness(Rfs(i), Rgs(i), [X Y Z], [Xw Yw Zw], targetRg);
+
     % Save luminous efficacy of spectrum normalized to Y=100
-    LERs(i) = spdToLER(spds(i, :));
+    %LERs(i) = spdToLER(spds(i, :));
     
     % Save max lumens and true coefficients
     [maxLumens(i), trueCoeffs(i, :)] = calMaxLumens([redLER; warmLER; coldLER], [redP; warmP; coldP], fitCoeffs(i, :)');
     
     % Generate reference spectrum with current CCT
-    refs(i, :) = refSpd(ccts(i));
     % Scale reference spectrum so that luminosity outputs for mixed spectrum
     % and reference spectrum are equal
-    [~, ~, ~, ~, Y_spd] = spdToXyz(spds(i,:));
-    [~, ~, ~, ~, Y_ref] = spdToXyz(refs(i,:));
-    refs(i, :) = refs(i, :) * (Y_spd / Y_ref);
+    %refs(i, :) = refs(i, :) * (Y / Yw);
 end
 
+%%
+interpolationIn = cputime - t
 
 %% Plot results
 figure;
@@ -241,11 +268,11 @@ grid on;
 
 %% Plot Rf, Rg and Rp
 subplot(2,2,3);
-plot(ccts, Rfs, ccts, Rgs, ccts, Rps, 'linewidth', 1.5);
+plot(ccts, Rfs, ccts, Rgs, ccts, goodnesses, 'linewidth', 1.5);
 axis([minCCT maxCCT 50 125]);
-title('Fidelity (Rf), Saturation (Rg) and Preference (Rp)');
+title('Fidelity (Rf), Saturation (Rg) and Goodness)');
 xlabel('CCT (K)');
-legend('Rf', 'Rg', 'Rp');
+legend('Rf', 'Rg', 'Goodness');
 grid on;
 
 %% Plot max lumens
@@ -272,6 +299,9 @@ grid on;
 if ~isempty('supertitle')
     suptitle(supertitle);
 end
+
+%%
+allButInspectionsIn = cputime - t
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if inspectSpds

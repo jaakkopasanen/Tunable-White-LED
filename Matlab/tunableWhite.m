@@ -307,7 +307,7 @@ allButInspectionsIn = cputime - t
 if inspectSpds
     plotCcts = [1500, 2000, 2800, 4000, 5600];
     for i = 1:length(plotCcts)
-       inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)));
+       inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)), targetRg, supertitle);
     end
 end
 

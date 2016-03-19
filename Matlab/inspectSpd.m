@@ -1,9 +1,18 @@
-function [ ] = inspectSpd( spd, supertitle )
-%INSPECTSPD Plot spd with reference spd scaled correctly
-%   inspectSpd(spd) plots spd with reference spd with same color
-%   temperature scaled so that both have same luminous output.
-%
-%   Reference spd is also returned
+function [ ] = inspectSpd( spd, targetRg, supertitle )
+%INSPECTSPD Plot all kinds of spectra inspections
+%Input:
+%   spd        := Spectral power distribution from 380nm to 780nm at 5nm
+%   targetRg   := Optional target gamut score for goodness calculation
+%   supertitle := Optional supertitle for figure
+
+if ~exist('supertitle', 'var')
+    if exist('targetRg', 'var')
+        if ischar(targetRg)
+            supertitle = targetRg;
+            targetRg = 0;
+        end
+    end
+end
 
 % Load test color samples rgb data
 persistent cieRaTestColorsRgb;
@@ -40,7 +49,11 @@ CCT = spdToCct(spd);
 ref = refSpd(CCT);
 [x, y, z, X, Y, Z] = spdToXyz(spd);
 [~, ~, ~, X_ref, Y_ref, Z_ref] = spdToXyz(ref);
-[goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], 110);
+if targetRg
+    [goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], targetRg);
+else
+    [goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref]);    
+end
 ref = ref.*(Y/Y_ref);
 
 % Light color

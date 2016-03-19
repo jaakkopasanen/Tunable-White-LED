@@ -1,14 +1,19 @@
-function [ maxLumens, trueCoeffs ] = calMaxLumens( LERs, powers, coeffs )
+function [ maxLumens, trueCoeffs ] = calMaxLumens( leds, coeffs )
 %CALMAXLUMENS Calculates maximum lumens
 %Syntax
 %   [maxLumens, trueCoeffs] = calMaxLumens(LERs, powers, coeffs); 
 %Input
-%   LERs   := Column vector of luminous efficacies of radiations for LEDs
-%   powers := Column vector of LED maximum powers
 %   coeffs := Column vector of mixing coefficients for LEDS
 %Output
 %   maxLumen   := Maximum lumens achievable with given leds and coeffs
 %   trueCoeffs := True coeffients needed for mixing given LEDs
+
+powers = zeros(length(leds), 1);
+LERs = powers;
+for i = 1:length(leds)
+    powers(i) = leds(i).power;
+    LERs(i) = leds(i).ler;
+end
 
 K = 1 / max(coeffs);
 normalizedCoeffs = K*coeffs;

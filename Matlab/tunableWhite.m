@@ -12,19 +12,16 @@ polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 1000; % Minimum correlated color temperature
 maxCCT = 6500; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
-mode = 3; % LED mixing mode: 2 for 2 LED mixing, 3 for 3 LED mixing
-inspectSpds = true; % Inspect SPDs for various color temperatures?
+multiLedMixing = true; % Mix multiple LEDs or only two?
+inspectSpds = false; % Inspect SPDs for various color temperatures?
 
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
 
-%% Spectrum for red LED
-% Gaussian distribution from 380nm to 780nm with center in 630nm
-red = gaussmf(380:5:780, [20 670]); redL = 100;
-green = gaussmf(380:5:780, [20 530]); greenL = 320;
-blue = gaussmf(380:5:780, [20 455]); blueL = 320;
-%red = Yuji_Red;
-
+%% Spectrums for red, green and blue LEDs
+red = gaussmf(L, [20 670]); redL = 120;
+green = gaussmf(L, [20 530]); greenL = 240;
+blue = gaussmf(L, [20 455]); blueL = 150;
 
 %% Spectrum for warm white LED
 warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
@@ -46,72 +43,51 @@ cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Generic_6500K; coldL = 200;
 %cold = Generic_10000K; coldL = 350;
 
+%% LEDs used for simulations
+leds = [
+    Led('red', red, redL, 1)
+    Led('warm', warm, warmL, 1)
+    Led('cold', cold, coldL, 1)
+    %Led('green', green, greenL, 0.2)
+    %Led('blue', blue, blueL, 0.5)
+];
+ledSpds = zeros(length(leds), length(L));
+for i = 1:length(leds)
+    ledSpds(i, :) = leds(i).spd;
+end
+
 %%
 supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
-
-%% Radiation powers for LEDs
-redLER = spdToLER(red);
-warmLER = spdToLER(warm);
-coldLER = spdToLER(cold);
-redP = redL / redLER;
-warmP = warmL / warmLER;
-coldP = coldL / coldLER;
-
-%% Correlated color temperatures for each LED
-redT = spdToCct(red);
-warmT = spdToCct(warm);
-coldT = spdToCct(cold);
-
-i = 1;
-% Data container for raw mixing results
-% Each row is result of one coefficient mixing pair
-% 1st column: CCT, columns 2 to 4: coefficients for red LED, warm white LED
-% and cold white LED, respectively
-rawMixingData = zeros(2/resolution + 1, 4);
-
-%%
 initializedIn = cputime - t
 
-%% Mix 2 leds: red and warm up to warm led CCT, warm and cold up to cold led CCT
-if mode == 2
-    % Mix red and warm white LEDs
-    % Iterate coefficient for warm LED from 0 to 1 with specified resolution
-    for c = 0:resolution:1
-        % Normalize factors
-        a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
-        % Create mix spectrum with mix factors
-        % Coefficients for warm white LED and red LED must sum to 1
-        spd = mixSpd([red; warm], [b; a]);
-        cct = spdToCct(spd);
-        % Add row to data matrix
-        % Mixing only red and warm white, coefficient for cold white is zero
-        rawMixingData(i,:) = [cct; b; a; 0];
-        i = i + 1;
-    end
-    % Mix warm white LED and cold white LED
-    for c = resolution:resolution:1
-        a = c; b = 1 - a; k = 1 / max(a, b); %a = k*a; b = k*b;
-        spd = mixSpd([warm; cold], [a; b]);
-        cct = spdToCct(spd);
-        % Mixing only warm white and cold white, coefficient for red is zero
-        rawMixingData(i,:) = [cct; 0; a; b];
-        i = i + 1;
-    end
+%% Never use multi led mixing for 2 LEDs
+if length(leds) < 3
+    multiLedMixing = false;
+end
 
-%% Mix all 3 LEDs
-elseif mode == 3
+%% Mix 2 consecutive leds
+if ~multiLedMixing
     
-    for r = 1:-resolution:0
-        for w = 1-r:-resolution:0
-            spd = mixSpd([red; warm; cold], [r, w, 1-r-w]);
+    rawMixingData = zeros((length(leds)-1)/resolution + 1, length(leds) + 1);
+    i = 1;
+    for l = 1:length(leds)-1
+        for c = 1:-resolution:0
+            % Create mix spectrum with mix factors
+            spd = mixSpd([leds(l).spd; leds(l+1).spd], [c; 1-c]);
             cct = spdToCct(spd);
-            rawMixingData(i, :) = [cct r w 1-r-w];
+            % Add row to data matrix
+            rawMixingData(i, 1) = cct;
+            rawMixingData(i, l+1) = c;
+            rawMixingData(i, l+2) = 1 - c;
             i = i + 1;
         end
     end
-    
+
+%% Mix all LEDs
 else
-    error('Mode must be 2 or 3');
+    
+    rawMixingData = mixLeds(leds, resolution);
+    
 end
 
 %%
@@ -119,7 +95,8 @@ rawMixingIn = cputime - t
 
 %% Select best results
 binSize = 100;
-cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 3);
+% goodness, index
+cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 2);
 
 % Iterate all bins and find largest Rp for each bin
 for i = 1:length(rawMixingData)
@@ -133,41 +110,45 @@ for i = 1:length(rawMixingData)
     % CCT bin index
     cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
 
-    spd = mixSpd([red; warm; cold], rawMixingData(i, 2:4));
+    spd = mixSpd(ledSpds, rawMixingData(i, 2:end));
     [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
     [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1)));
     [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
     goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg);
     
     % Greates Rp so far -> update
-    if goodness > cctBins(cctBin, 2)
-        cctBins(cctBin, 2) = goodness;
-        cctBins(cctBin, 3) = i;
+    if goodness > cctBins(cctBin, 1)
+        cctBins(cctBin, 1) = goodness;
+        cctBins(cctBin, 2) = i;
     end
 
 end
 
 % Copy to mixing data
-mixingData = zeros(length(cctBins), 4);
+mixingData = zeros(length(cctBins), length(leds) + 1);
 for i = 1:length(cctBins)
-    if cctBins(i, 3) == 0
+    if cctBins(i, 2) == 0 % index is 0 -> missed bin
         continue;
     end
-    mixingData(i, :) = rawMixingData(cctBins(i, 3), :);
+    mixingData(i, :) = rawMixingData(cctBins(i, 2), :);
 end
 
 % Remove empty bins
 mixingData(mixingData(:, 1) == 0, :) = [];
 
-% Add Warm white
-if mode == 2
-    for i = 2:length(mixingData)
-        if isequal(mixingData(i, 2:4), [0 1 0])
-            break;
-        end
-        if mixingData(i - 1, 1) < warmT && mixingData(i, 1) > warmT
-            mixingData = [mixingData(1:i-1,:); [warmT 0 1 0]; mixingData(i:end, :)];
-            break;
+% Add singular LED ccts
+if ~multiLedMixing
+
+    for i = 1:length(leds)
+        % Does not exist yet
+        if ~find(mixingData(:, 1) == leds(i).cct)
+            row = zeros(1, size(mixingData, 2));
+            % 1st is the cct
+            row(1) = leds(i).cct;
+            % LEDs coeff is 1, others are left 0
+            row(i + 1) = 1;
+            % Add to mixing data
+            mixingData = [mixingData row];
         end
     end
 end
@@ -183,7 +164,7 @@ ccts = minCCT:10:maxCCT;
 spds = zeros(length(ccts), length(L));
 % Reference spectrums to which the mixed spectrums are compared
 % Uses black body radiator below 5000K and IlluminantD above 5000K
-refs = spds;
+%refs = spds;
 % Color rendering indexes for each generated spectrum
 %cris = zeros(length(ccts), 1);
 % Rf and Rg for each spectrum
@@ -198,15 +179,17 @@ maxLumens = zeros(length(ccts), 1);
 % Mixing coefficients based on polynomial fit functions
 % Each row contains mixing coefficients for respective spectrum
 % Columns red, warm white and cold white coefficients repectively
-fitCoeffs = zeros(length(ccts), 3);
+fitCoeffs = zeros(length(ccts), length(leds));
 % True coefficients needed for LED mixing with taking powers into account
-trueCoeffs = zeros(length(ccts), 3);
+trueCoeffs = zeros(length(ccts), length(leds));
 for i = 1:length(ccts)
     % Save mixing coefficients
+    %fc = estimateCoeffs(ccts(i), mixingData);
+    %size(fc)
     fitCoeffs(i, :) = estimateCoeffs(ccts(i), mixingData);
     
     % Generate mixed spectrum with the generated mixing coefficients
-    spds(i, :) = mixSpd([red; warm; cold], fitCoeffs(i, :)');
+    spds(i, :) = mixSpd(ledSpds, fitCoeffs(i, :)');
     
     % Save CRI for the generated spectrum
     % Save Rf and Rg for the generated spectrum
@@ -219,7 +202,7 @@ for i = 1:length(ccts)
     %LERs(i) = spdToLER(spds(i, :));
     
     % Save max lumens and true coefficients
-    [maxLumens(i), trueCoeffs(i, :)] = calMaxLumens([redLER; warmLER; coldLER], [redP; warmP; coldP], fitCoeffs(i, :)');
+    [maxLumens(i), trueCoeffs(i, :)] = calMaxLumens(leds, fitCoeffs(i, :)');
     
     % Generate reference spectrum with current CCT
     % Scale reference spectrum so that luminosity outputs for mixed spectrum
@@ -232,6 +215,16 @@ interpolationIn = cputime - t
 
 %% Plot results
 figure;
+colors = [
+    0         0.4470    0.7410
+    0.8500    0.3250    0.0980
+    0.9290    0.6940    0.1250
+    0.4940    0.1840    0.5560
+    0.4660    0.6740    0.1880
+    0.3010    0.7450    0.9330
+    0.6350    0.0780    0.1840
+];
+
 
 %% Plot mixing coefficients
 % CCTs on the X-axis, mixing coefficients on the Y-axis.
@@ -241,12 +234,16 @@ figure;
 % Both should be almost indetical, if they are not then the polynomial fit
 % failed somehow.
 subplot(2,2,1);
-plot(...
-    mixingData(:,1), mixingData(:,2), 'ro', ccts, fitCoeffs(:,1), 'r',... % Red
-    mixingData(:,1), mixingData(:,3), 'go', ccts, fitCoeffs(:,2), 'g',... % Warm
-    mixingData(:,1), mixingData(:,4), 'bo', ccts, fitCoeffs(:,3), 'b');   % Cold
+hold on;
+legendMatrix = cell(length(leds)*2, 1);
+for i = 1:length(leds)
+    plot(mixingData(:,1), mixingData(:,i+1), 'o', 'Color', colors(i,:));
+    legendMatrix{(i-1)*2+1} = strcat([leds(i).name, ' raw']);
+    plot(ccts, fitCoeffs(:,i), 'Color', colors(i,:));
+    legendMatrix{(i-1)*2+2} = strcat([leds(i).name, ' fitted']);
+end
 title('Relative power coefficients');
-legend('Red', 'Red fitted', 'Warm', 'Warm fitted', 'Cold', 'Cold fitted');
+legend(legendMatrix);
 xlabel('CCT (K)');
 ylabel('Relative LED Power');
 axis([minCCT maxCCT -0.2 1.2]);
@@ -254,13 +251,14 @@ grid on;
 
 %% Plot true coefficients
 subplot(2,2,2);
-plot(...
-    ccts, trueCoeffs(:,1), 'r',... % Red
-    ccts, trueCoeffs(:,2), 'g',... % Warm
-    ccts, trueCoeffs(:,3), 'b',... % Cold
-    'linewidth', 1.5);   
+hold on;
+legendMatrix = cell(length(leds), 1);
+for i = 1:length(leds)
+    plot(ccts, trueCoeffs(:,i), 'LineWidth', 1.5, 'Color', colors(i,:));
+    legendMatrix{i} = leds(i).name;
+end
 title('True power coefficients');
-legend('Red', 'Warm', 'Cold');
+legend(legendMatrix);
 xlabel('CCT (K)');
 ylabel('Relative LED Power');
 axis([minCCT maxCCT -0.2 1.2]);
@@ -270,7 +268,7 @@ grid on;
 subplot(2,2,3);
 plot(ccts, Rfs, ccts, Rgs, ccts, goodnesses, 'linewidth', 1.5);
 axis([minCCT maxCCT 50 125]);
-title('Fidelity (Rf), Saturation (Rg) and Goodness)');
+title('Fidelity (Rf), Saturation (Rg) and Goodness');
 xlabel('CCT (K)');
 legend('Rf', 'Rg', 'Goodness');
 grid on;
@@ -307,7 +305,7 @@ allButInspectionsIn = cputime - t
 if inspectSpds
     plotCcts = [1500, 2000, 2800, 4000, 5600];
     for i = 1:length(plotCcts)
-       inspectSpd(mixSpd([red;warm;cold], estimateCoeffs(plotCcts(i), mixingData)), targetRg, supertitle);
+       inspectSpd(mixSpd(ledSpds, estimateCoeffs(plotCcts(i), mixingData)), targetRg, supertitle);
     end
 end
 

@@ -11,6 +11,8 @@ if ~exist('supertitle', 'var')
             supertitle = targetRg;
             targetRg = 0;
         end
+    else
+        targetRg = 0;
     end
 end
 

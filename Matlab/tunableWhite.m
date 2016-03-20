@@ -1,29 +1,28 @@
 clear; t = cputime;
+load('cie.mat'); % Load lookup tables for colorimetry calculations
+load('led_data.mat'); % Load spectrums for various LEDs
+L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
 
 %% Glossary
 % SPD := Spectral power distribution, also called spectrum in this script
 % CCT := Correlated color temperature, nearest black body radiator
 % CRI := Color rendering index, calculated with all 14 test color samples
 
-%% Declare variables
-L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
+%% Parameters
 resolution = 0.01; % LED mixing coefficient resolution
-polynomialOrder = 5; % Order of polynomial fit function
 minCCT = 1000; % Minimum correlated color temperature
-maxCCT = 6500; % Maximum correlated color temperature
+maxCCT = 8000; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
 multiLedMixing = true; % Mix multiple LEDs or only two?
-inspectSpds = false; % Inspect SPDs for various color temperatures?
+inspectSpds = true; % Inspect SPDs for various color temperatures?
+supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
 
-load('cie.mat'); % Load lookup tables for colorimetry calculations
-load('led_data.mat'); % Load spectrums for various LEDs
-
-%% Spectrums for red, green and blue LEDs
+% Spectrums for red, green and blue LEDs
 red = gaussmf(L, [20 670]); redL = 120;
 green = gaussmf(L, [20 530]); greenL = 240;
 blue = gaussmf(L, [20 455]); blueL = 150;
 
-%% Spectrum for warm white LED
+% Spectrum for warm white LED
 warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_BC2835L_3200K; warmL = 1400;
 %warm = Yuji_BC5730L_2700K; warmL = 900;
@@ -35,7 +34,7 @@ warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = mixSpd([Yuji_BC2835L_2700K;green],[0.9;0.1]); warmL = 700;
 %warm = mixSpd([Yuji_BC2835L_2700K;green],[0.8;0.2]); warmL = 700;
 
-%% Spectrum for cold white LED
+% Spectrum for cold white LED
 cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
 %cold = Yuji_BC5730L_6500K; coldL = 1000;
@@ -43,24 +42,28 @@ cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Generic_6500K; coldL = 200;
 %cold = Generic_10000K; coldL = 350;
 
-%% LEDs used for simulations
+% LEDs used for simulations
 leds = [
     Led('red', red, redL, 1)
+    Led('green', green, greenL, 0.2)
+    Led('blue', blue, blueL, 0.2)
     Led('warm', warm, warmL, 1)
     Led('cold', cold, coldL, 1)
-    %Led('green', green, greenL, 0.2)
-    %Led('blue', blue, blueL, 0.5)
 ];
+
+% Multiled mixing is done in groups to avoid 5 LED mixing
+ledGroups = [
+    1 2 4 5 % From red to cold white
+    2 3 5 0  % From cold white onwards
+];
+
+%% Helpers
 ledSpds = zeros(length(leds), length(L));
 for i = 1:length(leds)
     ledSpds(i, :) = leds(i).spd;
 end
 
-%%
-supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
-initializedIn = cputime - t
-
-%% Never use multi led mixing for 2 LEDs
+% Never use multi led mixing for 2 LEDs
 if length(leds) < 3
     multiLedMixing = false;
 end
@@ -86,12 +89,26 @@ if ~multiLedMixing
 %% Mix all LEDs
 else
     
-    rawMixingData = mixLeds(leds, resolution);
+    rawMixingData = [];
+    for i = 1:size(ledGroups, 1)
+        ledGroup = ledGroups(i, :);
+        ledGroup(ledGroup < 1) = []; % Remove zeros
+        md = mixLeds(leds(ledGroup), resolution); % Mix leds in led group
+
+        % Pad excluded LEDs as zeros
+        rmd = zeros(size(md, 1), length(leds) + 1);
+        rmd(:,1) = md(:,1); % CCT
+        for j = 1:size(md, 2)-1
+            rmd(:, ledGroup(j)+1) = md(:, j+1);
+        end
+        
+        rawMixingData = [ % Concatenate to raw mixing data
+            rawMixingData
+            rmd;
+        ];
+    end
     
 end
-
-%%
-rawMixingIn = cputime - t
 
 %% Select best results
 binSize = 100;
@@ -116,7 +133,7 @@ for i = 1:length(rawMixingData)
     [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
     goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg);
     
-    % Greates Rp so far -> update
+    % Best so far -> update
     if goodness > cctBins(cctBin, 1)
         cctBins(cctBin, 1) = goodness;
         cctBins(cctBin, 2) = i;
@@ -153,9 +170,6 @@ if ~multiLedMixing
     end
 end
 
-%%
-binSelectionIn = cputime - t
-
 %% Generate spectrums for each 10 Kelvins based on polynomial fit functions
 % Array of CCTs
 ccts = minCCT:10:maxCCT;
@@ -172,6 +186,7 @@ Rfs = zeros(length(ccts), 1);
 Rgs = zeros(length(ccts), 1);
 goodnesses = zeros(length(ccts), 1);
 duvs = zeros(length(ccts), 1);
+XYZs = zeros(length(ccts), 3);
 % Luminous Efficacy Radiation functions
 LERs = zeros(length(ccts), 1);
 % Maximum lumens
@@ -194,12 +209,13 @@ for i = 1:length(ccts)
     % Save CRI for the generated spectrum
     % Save Rf and Rg for the generated spectrum
     [Rfs(i), Rgs(i)] = spdToRfRg(spds(i, :));
-    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
+    [~, ~, ~, X, Y ,Z] = spdToXyz(spds(i, :));
+    XYZs(i, :) = [X Y Z];
     [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(ccts(i)));
-    [goodnesses(i), duvs(i)] = lightGoodness(Rfs(i), Rgs(i), [X Y Z], [Xw Yw Zw], targetRg);
+    [goodnesses(i), duvs(i)] = lightGoodness(Rfs(i), Rgs(i), XYZs(i, :), [Xw Yw Zw], targetRg);
 
     % Save luminous efficacy of spectrum normalized to Y=100
-    %LERs(i) = spdToLER(spds(i, :));
+    LERs(i) = spdToLER(spds(i, :));
     
     % Save max lumens and true coefficients
     [maxLumens(i), trueCoeffs(i, :)] = calMaxLumens(leds, fitCoeffs(i, :)');
@@ -210,37 +226,25 @@ for i = 1:length(ccts)
     %refs(i, :) = refs(i, :) * (Y / Yw);
 end
 
-%%
-interpolationIn = cputime - t
-
 %% Plot results
 figure;
 colors = [
-    0         0.4470    0.7410
-    0.8500    0.3250    0.0980
-    0.9290    0.6940    0.1250
-    0.4940    0.1840    0.5560
-    0.4660    0.6740    0.1880
-    0.3010    0.7450    0.9330
-    0.6350    0.0780    0.1840
+    0.6350    0.0780    0.1840 % Red
+    0.4660    0.6740    0.1880 % Green
+    0         0.4470    0.7410 % Blue
+    0.9290    0.6940    0.1250 % Yellow
+    0.3010    0.7450    0.9330 % Light blue
+    0.8500    0.3250    0.0980 % Orange
+    0.4940    0.1840    0.5560 % Purple
 ];
 
-
 %% Plot mixing coefficients
-% CCTs on the X-axis, mixing coefficients on the Y-axis.
-% Plot CCTs and mixing coefficients for all LEDs from raw mixing data, and
-% CCTs and mixing coefficients from spectrums generated with estimated
-% mixing coefficients.
-% Both should be almost indetical, if they are not then the polynomial fit
-% failed somehow.
-subplot(2,2,1);
+subplot(2,3,1);
 hold on;
-legendMatrix = cell(length(leds)*2, 1);
+legendMatrix = cell(length(leds), 1);
 for i = 1:length(leds)
-    plot(mixingData(:,1), mixingData(:,i+1), 'o', 'Color', colors(i,:));
-    legendMatrix{(i-1)*2+1} = strcat([leds(i).name, ' raw']);
-    plot(ccts, fitCoeffs(:,i), 'Color', colors(i,:));
-    legendMatrix{(i-1)*2+2} = strcat([leds(i).name, ' fitted']);
+    plot(ccts, fitCoeffs(:,i), 'LineWidth', 1.5, 'Color', colors(i,:));
+    legendMatrix{i} = leds(i).name;
 end
 title('Relative power coefficients');
 legend(legendMatrix);
@@ -250,7 +254,7 @@ axis([minCCT maxCCT -0.2 1.2]);
 grid on;
 
 %% Plot true coefficients
-subplot(2,2,2);
+subplot(2,3,4);
 hold on;
 legendMatrix = cell(length(leds), 1);
 for i = 1:length(leds)
@@ -265,7 +269,7 @@ axis([minCCT maxCCT -0.2 1.2]);
 grid on;
 
 %% Plot Rf, Rg and Rp
-subplot(2,2,3);
+subplot(2,3,2);
 plot(ccts, Rfs, ccts, Rgs, ccts, goodnesses, 'linewidth', 1.5);
 axis([minCCT maxCCT 50 125]);
 title('Fidelity (Rf), Saturation (Rg) and Goodness');
@@ -273,8 +277,22 @@ xlabel('CCT (K)');
 legend('Rf', 'Rg', 'Goodness');
 grid on;
 
+%% Plot CIE 1976 UCS
+ax = subplot(2,3,5);
+plotCieLuv(XYZs, true, ax);
+title('CIE 1976 UCS');
+
+%% Plot Luminous efficacy radiation function
+subplot(2,3,3);
+plot(ccts, LERs, 'LineWidth', 1.5);
+title('Luminous Efficacy of Radiation');
+xlabel('CCT (K)');
+ylabel('LER (lm/w)');
+axis([minCCT maxCCT 150 300]);
+grid on;
+
 %% Plot max lumens
-subplot(2,2,4);
+subplot(2,3,6);
 plot(ccts, maxLumens, 'linewidth', 1.5);
 axis([minCCT maxCCT 0 max(maxLumens)*1.2]);
 title('Max Lumens per Meter');
@@ -282,28 +300,14 @@ xlabel('CCT (K)');
 ylabel('Luminocity (lm/m)');
 grid on;
 
-%% Plot Luminous efficacy radiation function
-%{
-subplot(2,2,4);
-plot(ccts, LERs);
-title('Luminous Efficacy of Radiation');
-xlabel('CCT (K)');
-ylabel('LER (lm/w)');
-axis([minCCT maxCCT 150 300]);
-grid on;
-%}
-
 %% Set supertitle
 if ~isempty('supertitle')
     suptitle(supertitle);
 end
 
-%%
-allButInspectionsIn = cputime - t
-
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if inspectSpds
-    plotCcts = [1500, 2000, 2800, 4000, 5600];
+    plotCcts = [1500, 2000, 2800, 4000, 5600, 7500];
     for i = 1:length(plotCcts)
        inspectSpd(mixSpd(ledSpds, estimateCoeffs(plotCcts(i), mixingData)), targetRg, supertitle);
     end

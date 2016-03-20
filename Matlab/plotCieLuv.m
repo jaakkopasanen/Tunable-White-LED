@@ -29,33 +29,43 @@ end
 wavelengths(60, :) = wavelengths(1, :);
 
 % Point
-denom = XYZ(1) + 15*XYZ(2) + 3*XYZ(3);
-u = 4*XYZ(1)  / denom;
-v = 9*XYZ(2) / denom;
+u = zeros(1, size(XYZ, 1));
+v = zeros(1, size(XYZ, 1));
+for i = 1:size(XYZ, 1)
+    denom = XYZ(i,1) + 15*XYZ(i,2) + 3*XYZ(i,3);
+    u(i) = 4*XYZ(i,1)  / denom;
+    v(i) = 9*XYZ(i,2) / denom;
+end
 
 % Plots
+if size(XYZ, 1) > 1
+    style = '-k';
+else
+    style = 'ok';
+end
+
 hold on;
 
 if exist('ax', 'var')
     imagesc([0 0.63], [0 0.6], flip(cie1976UcsFull, 1), 'Parent', ax);
     if planckianLocus
-        plot(ax, cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), 'k');
+        plot(ax, cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
     end
     plot(ax, wavelengths(:, 1), wavelengths(:, 2), 'k', 'LineWidth', 1.5);
-    plot(ax, u, v, 'ok');
+    plot(ax, u, v, style);
 else
     imagesc([0 0.63], [0 0.6], flip(cie1976UcsFull, 1));
     if planckianLocus
-        plot(cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), 'k');
+        plot(cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
     end
     plot(wavelengths(:, 1), wavelengths(:, 2), 'k', 'LineWidth', 1.5);
-    plot(u, v, 'ok');
+    plot(u, v, style);
 end
 
 set(gca, 'ydir', 'normal');
 axis([0 0.63 0 0.6]);
-xlabel('u');
-ylabel('v');
+xlabel('u''');
+ylabel('v''');
 
 end
 

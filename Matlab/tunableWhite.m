@@ -2,13 +2,14 @@ clear; t = cputime;
 load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
+time = clock; disp(['Started at ' num2str(time(4)) ':' num2str(time(5))]);
 
 %% Parameters
 resolution = 0.01; % LED mixing coefficient resolution
 minCCT = 1000; % Minimum correlated color temperature
-maxCCT = 6000; % Maximum correlated color temperature
+maxCCT = 6800; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
-maxDuv = 0.02; % Maximum deviation from planckian locus
+maxDuv = 0.03; % Maximum deviation from planckian locus
 multiLedMixing = true; % Mix multiple LEDs or only two?
 inspectSpds = true; % Inspect SPDs for various color temperatures?
 supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
@@ -31,9 +32,9 @@ warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = mixSpd([Yuji_BC2835L_2700K;green],[0.8;0.2]); warmL = 700;
 
 % Spectrum for cold white LED
-cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
+%cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 %cold = Yuji_BC5730L_5600K; coldL = 1000;
-%cold = Yuji_BC5730L_6500K; coldL = 1000;
+cold = Yuji_BC5730L_6500K; coldL = 2500;
 %cold = Yuji_VTC5730_5600K; coldL = 1000;
 %cold = Generic_6500K; coldL = 200;
 %cold = Generic_10000K; coldL = 350;
@@ -42,8 +43,8 @@ cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 leds = [
     Led('red', red, redL, 1)
     Led('green', green, greenL, 0.15)
-    %Led('blue', blue, blueL, 0.2)
-    Led('warm', warm, warmL, 0.5)
+    Led('blue', blue, blueL, 0.2)
+    Led('warm', warm, warmL, 1)
     Led('cold', cold, coldL, 1)
 ];
 
@@ -107,6 +108,14 @@ else
     
 end
 
+%% Test performance and calculate E.T.A.
+tic;
+for i = 1:10
+    [Rf, Rg] = spdToRfRg(leds(2).spd);
+end
+time = clock; disp(['Started selecting at ' num2str(time(4)) ':' num2str(time(5))]);
+disp(['Estimated duration is ' num2str(round(toc * size(rawMixingData, 1) / 10 / 60)) 'min']);
+
 %% Select best results
 binSize = 100;
 % goodness, index
@@ -146,7 +155,6 @@ for i = 1:length(rawMixingData)
     end
 
 end
-
 nSkipped = nSkipped
 
 % Copy to mixing data
@@ -251,7 +259,7 @@ subplot(2,3,1);
 hold on;
 legendMatrix = cell(length(leds), 1);
 for i = 1:length(leds)
-    plot(ccts, fitCoeffs(:,i), 'o', 'Color', colors(i,:));
+    plot(ccts, fitCoeffs(:,i), 'LineWidth', 1.5, 'Color', colors(i,:));
     legendMatrix{i} = leds(i).name;
 end
 title('Relative power coefficients');

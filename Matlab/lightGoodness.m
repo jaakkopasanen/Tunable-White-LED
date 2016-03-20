@@ -23,12 +23,19 @@ uw = 4*XYZw(1)  / (XYZw(1) + 15*XYZw(2) + 3*XYZw(3));
 vw = 9*XYZw(2) / (XYZw(1) + 15*XYZw(2) + 3*XYZw(3));
 duv = sqrt((uw - u)^2 + (vw - v)^2);
 
+cp = 1000;
+% Double the chromacity penalty for colors on the green side of planckian
+% locus
+if sqrt((0.5-u)^2 + (0.4-v)^2) > sqrt((0.5-uw)^2 + (0.4-vw)^2)
+    cp = cp * 2;
+end
+
 % Preference score
-maxRf = 100 - abs(100 - Rg);
+maxRf = 100 - abs(100 - Rg)*5/4;
 % Distance from (maxRf, targetRg, uw, vw) point
-%d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2 + (uw - u)^2 + (vw - v)^2);
-d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2) + duv*300;
-% Force to range [0,100]. No negative values!
+d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2 + (cp*(uw - u))^2 + (cp*(vw - v))^2);
+%d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2) + duv*cp;
+% Force to range [0,100]. No negative values.
 goodness = 10*log(exp((100 - d) / 10) + 1);
 
 end

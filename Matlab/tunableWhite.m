@@ -3,16 +3,12 @@ load('cie.mat'); % Load lookup tables for colorimetry calculations
 load('led_data.mat'); % Load spectrums for various LEDs
 L = 380:5:780; % Wavelengths: from 380nm to 780nm sampled at 5nm
 
-%% Glossary
-% SPD := Spectral power distribution, also called spectrum in this script
-% CCT := Correlated color temperature, nearest black body radiator
-% CRI := Color rendering index, calculated with all 14 test color samples
-
 %% Parameters
 resolution = 0.01; % LED mixing coefficient resolution
 minCCT = 1000; % Minimum correlated color temperature
-maxCCT = 8000; % Maximum correlated color temperature
+maxCCT = 6000; % Maximum correlated color temperature
 targetRg = 110; % Target color saturation for optimization
+maxDuv = 0.02; % Maximum deviation from planckian locus
 multiLedMixing = true; % Mix multiple LEDs or only two?
 inspectSpds = true; % Inspect SPDs for various color temperatures?
 supertitle = 'Red = 625nm, Warm = BC2835L 2700K + Green 20%, Cold = BC2835L 5600K';
@@ -30,7 +26,7 @@ warm = Yuji_BC2835L_2700K; warmL = 1400; warmL = 700;
 %warm = Yuji_VTC5730_2700K; warmL = 800;
 %warm = Yuji_VTC5730_3200K; warmL = 800;
 %warm = Cree_A19_2700K; warmL = 350;
-%warm = Generic_3000K; warmL = 300;
+%warm = Generic_3000K; warmL = 700;
 %warm = mixSpd([Yuji_BC2835L_2700K;green],[0.9;0.1]); warmL = 700;
 %warm = mixSpd([Yuji_BC2835L_2700K;green],[0.8;0.2]); warmL = 700;
 
@@ -45,16 +41,17 @@ cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
 % LEDs used for simulations
 leds = [
     Led('red', red, redL, 1)
-    Led('green', green, greenL, 0.2)
-    Led('blue', blue, blueL, 0.2)
-    Led('warm', warm, warmL, 1)
+    Led('green', green, greenL, 0.15)
+    %Led('blue', blue, blueL, 0.2)
+    Led('warm', warm, warmL, 0.5)
     Led('cold', cold, coldL, 1)
 ];
 
 % Multiled mixing is done in groups to avoid 5 LED mixing
 ledGroups = [
-    1 2 4 5 % From red to cold white
-    2 3 5 0  % From cold white onwards
+    %1 2 4 5 % From red to cold white
+    %2 3 5 0  % From cold white onwards
+    1 2 3 4
 ];
 
 %% Helpers
@@ -114,7 +111,7 @@ end
 binSize = 100;
 % goodness, index
 cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 2);
-
+nSkipped = 0;
 % Iterate all bins and find largest Rp for each bin
 for i = 1:length(rawMixingData)
     % Skip results outside of CCT range
@@ -123,13 +120,22 @@ for i = 1:length(rawMixingData)
     elseif rawMixingData(i, 1) > maxCCT
         continue;
     end
-
+    
+    spd = mixSpd(ledSpds, rawMixingData(i, 2:end));
+    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
+    uv = xyzToCie1976UcsUv([X Y Z]);
+    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1)));
+    uvw = xyzToCie1976UcsUv([Xw Yw Zw]);
+    duv = sqrt(sum((uv-uvw).^2));
+    % Skip samples that deviate from planckian locus too much
+    if duv > maxDuv || (uv(1) < 0.3 && duv > maxDuv / 4)
+        nSkipped = nSkipped + 1;
+        continue;
+    end
+    
     % CCT bin index
     cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
 
-    spd = mixSpd(ledSpds, rawMixingData(i, 2:end));
-    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
-    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1)));
     [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
     goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg);
     
@@ -140,6 +146,8 @@ for i = 1:length(rawMixingData)
     end
 
 end
+
+nSkipped = nSkipped
 
 % Copy to mixing data
 mixingData = zeros(length(cctBins), length(leds) + 1);
@@ -243,7 +251,7 @@ subplot(2,3,1);
 hold on;
 legendMatrix = cell(length(leds), 1);
 for i = 1:length(leds)
-    plot(ccts, fitCoeffs(:,i), 'LineWidth', 1.5, 'Color', colors(i,:));
+    plot(ccts, fitCoeffs(:,i), 'o', 'Color', colors(i,:));
     legendMatrix{i} = leds(i).name;
 end
 title('Relative power coefficients');
@@ -307,9 +315,15 @@ end
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if inspectSpds
-    plotCcts = [1500, 2000, 2800, 4000, 5600, 7500];
+    plotCcts = [1500, 2000, 2700, 4000, 5600];
     for i = 1:length(plotCcts)
-       inspectSpd(mixSpd(ledSpds, estimateCoeffs(plotCcts(i), mixingData)), targetRg, supertitle);
+        c = estimateCoeffs(plotCcts(i), mixingData);
+        str = [];
+        for j = 1:length(c)
+            str = [str leds(j).name ' = ' num2str(round(c(j)*100)) '%, '];
+        end
+        str = str(1:end-2);
+        inspectSpd(mixSpd(ledSpds, c), targetRg, str);
     end
 end
 

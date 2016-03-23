@@ -78,10 +78,6 @@ xlabel('CCT (K)');
 ylabel('Luminous intensity (lm/m)');
 grid on;
 
-%% Set supertitle
-if ~isempty('supertitle')
-    suptitle(supertitle);
-end
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if ~isempty(inspectSpds)

@@ -13,12 +13,12 @@ resolution = 0.01;
 % Minimum correlated color temperature. All combinations producing
 % temperatures below this value are ignored. Also used as lower limit for
 % plotting various visualization aids.
-minCCT = 1000; 
+minCCT = 1200; 
 
 % Maximum correlated color temperature. All combinations producing
 % temperatures over this value are ignored. Also used as upper limit for
 % plotting the various visualization aids.
-maxCCT = 6800;
+maxCCT = 7000;
 
 % Target IES TM-30-15 Rg value for light quality optimization. Higher the
 % value more the light will oversaturate the colors. Some oversaturation is
@@ -32,7 +32,7 @@ targetRg = 105;
 % the Planckian locus are ignore. This parameter is only for simulation
 % speed optimization. Too low values may lead into ignoring good results,
 % too high value may lead to longer calculation times.
-maxDuv = 0.03;
+maxDuv = 0.02;
 
 % Color temperature samples for inspection. inspectSpd function is called
 % with spds resulting in all of these correlated color temperatures.
@@ -48,10 +48,10 @@ blue = gaussmf(L, [20 455]); blueL = 300;
 % Spectrum for warm white LED. Yuji BC5730L strips are not recommended
 % anymore by the manufacturer since all new and improved strips use BC2835L
 % chips. Remove comment from one of the lines or add your own spectrum.
-warm = Yuji_BC2835L_2700K; warmL = 700; % Yuji BC2835L
+%warm = Yuji_BC2835L_2700K; warmL = 700; % Yuji BC2835L
 %warm = Yuji_VTC5730_2700K; warmL = 800; % Yuji Violet chip 
 %warm = Cree_A19_2700K; warmL = 700; % Represents decent warm white LED
-%warm = Generic_3000K; warmL = 700; % Represents cheap Chinese warm white
+warm = Generic_3000K; warmL = 700; % Represents cheap Chinese warm white
 
 % Spectrum for cold white LED
 %cold = Yuji_BC2835L_5600K; coldL = 1700; coldL = 2700;
@@ -67,8 +67,8 @@ cold = Yuji_BC2835L_6500K; coldL = 900;
 %   maxCoeff:double Maximum coefficient for the LED
 leds = [
     Led('red', red, redL, 1)
-    %Led('green', green, greenL, 0.4)
-    %Led('blue', blue, blueL, 0.2)
+    Led('green', green, greenL, 0.3)
+    Led('blue', blue, blueL, 0.2)
     Led('warm', warm, warmL, 1)
     Led('cold', cold, coldL, 1)
 ];
@@ -86,9 +86,9 @@ leds = [
 ledGroups = [
     %1 2 4 5 % From red to cold white
     %2 3 5 0  % From cold white onwards
-    %1 2 3 4 5
-    1 2
-    2 3
+    1 2 3 4 5
+    %1 2
+    %2 3
 ];
 
 %% Generate mixing data for simulations

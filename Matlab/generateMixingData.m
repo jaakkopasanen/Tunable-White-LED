@@ -58,7 +58,7 @@ for i = 1:length(rawMixingData)
     uvw = xyzToCie1976UcsUv([Xw Yw Zw]);
     duv = sqrt(sum((uv-uvw).^2));
     % Skip samples that deviate from planckian locus too much
-    if duv > maxDuv || (uv(1) < 0.3 && duv > maxDuv / 4)
+    if duv > maxDuv
         nSkipped = nSkipped + 1;
         continue;
     end

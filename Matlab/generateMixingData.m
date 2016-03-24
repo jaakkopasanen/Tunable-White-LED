@@ -39,9 +39,8 @@ time = clock; disp(['Started selecting at ' num2str(time(4)) ':' num2str(time(5)
 disp(['Estimated duration is ' num2str(round(toc * size(rawMixingData, 1) / 10 / 60)) 'min']);
 
 %% Select best results
-binSize = 100;
 % goodness, index
-cctBins = zeros(maxCCT / binSize - minCCT / binSize + 1, 2);
+cctBins = zeros(ceil((maxCCT - minCCT) / cctBinSize) + 1, 2);
 nSkipped = 0;
 % Iterate all bins and find largest Rp for each bin
 for i = 1:length(rawMixingData)
@@ -64,10 +63,11 @@ for i = 1:length(rawMixingData)
     end
     
     % CCT bin index
-    cctBin = floor(rawMixingData(i, 1) / binSize) - minCCT / binSize + 1;
+    %cctBin = floor(rawMixingData(i, 1) / cctBinSize) - minCCT / cctBinSize + 1;
+    cctBin = floor((rawMixingData(i, 1) - minCCT) / cctBinSize) + 1;
 
     [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
-    goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg);
+    goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg, RfPenalty, RgPenalty, duvPenalty);
     
     % Best so far -> update
     if goodness > cctBins(cctBin, 1)

@@ -88,6 +88,6 @@ if ~isempty(inspectSpds)
             str = [str leds(j).name ' = ' num2str(round(c(j)*100)) '%, '];
         end
         str = str(1:end-2);
-        inspectSpd(mixSpd(ledSpds, c), targetRg, str);
+        inspectSpd(mixSpd(ledSpds, c), targetRg, RfPenalty, RgPenalty, duvPenalty, str);
     end
 end

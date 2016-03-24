@@ -46,7 +46,7 @@ for i = 1:length(ccts)
     [~, ~, ~, X, Y ,Z] = spdToXyz(spds(i, :));
     XYZs(i, :) = [X Y Z];
     [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(ccts(i)));
-    [goodnesses(i), duvs(i)] = lightGoodness(Rfs(i), Rgs(i), XYZs(i, :), [Xw Yw Zw], targetRg);
+    [goodnesses(i), duvs(i)] = lightGoodness(Rfs(i), Rgs(i), XYZs(i, :), [Xw Yw Zw], targetRg, RfPenalty, RgPenalty, duvPenalty);
 
     % Save luminous efficacy of spectrum normalized to Y=100
     LERs(i) = spdToLER(spds(i, :));

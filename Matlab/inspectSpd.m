@@ -1,20 +1,9 @@
-function [ ] = inspectSpd( spd, targetRg, supertitle )
+function [ ] = inspectSpd( spd, targetRg, RfPenalty, RgPenalty, duvPenalty, supertitle )
 %INSPECTSPD Plot all kinds of spectra inspections
 %Input:
 %   spd        := Spectral power distribution from 380nm to 780nm at 5nm
 %   targetRg   := Optional target gamut score for goodness calculation
 %   supertitle := Optional supertitle for figure
-
-if ~exist('supertitle', 'var')
-    if exist('targetRg', 'var')
-        if ischar(targetRg)
-            supertitle = targetRg;
-            targetRg = 0;
-        end
-    else
-        targetRg = 0;
-    end
-end
 
 % Load test color samples rgb data
 persistent cieRaTestColorsRgb;
@@ -51,11 +40,7 @@ CCT = spdToCct(spd);
 ref = refSpd(CCT);
 [x, y, z, X, Y, Z] = spdToXyz(spd);
 [~, ~, ~, X_ref, Y_ref, Z_ref] = spdToXyz(ref);
-if targetRg
-    [goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], targetRg);
-else
-    [goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref]);    
-end
+[goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], targetRg, RfPenalty, RgPenalty, duvPenalty);
 ref = ref.*(Y/Y_ref);
 
 % Light color

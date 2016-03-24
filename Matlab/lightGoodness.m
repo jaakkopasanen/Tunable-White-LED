@@ -1,4 +1,4 @@
-function [ goodness, duv ] = lightGoodness( Rf, Rg, XYZ, XYZw, targetRg )
+function [ goodness, duv ] = lightGoodness( Rf, Rg, XYZ, XYZw, targetRg, RfPenalty, RgPenalty, duvPenalty )
 %lIGHTGOODNESS Calculates goodness points for light
 %Syntax:
 %   goodness = lightGoodness(Rf, Rg, XYZ)
@@ -11,8 +11,16 @@ function [ goodness, duv ] = lightGoodness( Rf, Rg, XYZ, XYZw, targetRg )
 %Output:
 %   goodness := Arbitrary goodness scores
 %   duv      := Difference in CIE 1976 UCS color coordinates
-
-if ~exist('targetRg', 'var')
+if ~exist('duvPenalty', 'var') || ~duvPenalty
+    duvPenalty = 10;
+end
+if ~exist('RgPenalty', 'var') || ~RgPenalty
+    RgPenalty = 1;
+end
+if ~exist('RfPenalty', 'var') || ~RfPenalty
+    RfPenalty = 1;
+end
+if ~exist('targetRg', 'var') || ~targetRg
     targetRg = 100;
 end
 
@@ -23,11 +31,10 @@ uw = 4*XYZw(1)  / (XYZw(1) + 15*XYZw(2) + 3*XYZw(3));
 vw = 9*XYZw(2) / (XYZw(1) + 15*XYZw(2) + 3*XYZw(3));
 duv = sqrt((uw - u)^2 + (vw - v)^2);
 
-cp = 10;
 % Double the chromacity penalty for colors on the green side of planckian
 % locus
 if sqrt((0.5-u)^2 + (0.4-v)^2) > sqrt((0.5-uw)^2 + (0.4-vw)^2)
-    cp = cp * 2;
+    duvPenalty = duvPenalty * 2;
 end
 
 % Preference score
@@ -40,7 +47,7 @@ d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2 + (cp*(uw - u))^2 + (cp*(vw - v))^2)
 goodness = 10*log(exp((100 - d) / 10) + 1);
 %}
 
-goodness = (1 - abs(maxRf - Rf)/100) * (1 - abs(targetRg - Rg)/100) * (1-duv*cp) * 100;
+goodness = (1 - RfPenalty*abs(maxRf - Rf)/100) * (1 - RgPenalty*abs(targetRg - Rg)/100) * (1-duv*duvPenalty) * 100;
 
 end
 

@@ -9,7 +9,7 @@ time = clock; disp(['Started at ' num2str(time(4)) ':' num2str(time(5))]); % Dis
 % LED mixing coefficient resolution. Higher the resolution, better the
 % results but time requirement is higher (in high order)
 % 5 LED mixing with resolution of 0.01 should take several hours.
-resolution = 0.1;
+resolution = 0.01;
 
 % Color temperature bin size in Kelvins for selecting best results.
 % Raw mixing results are binned by color temperature and for each bin the
@@ -17,7 +17,7 @@ resolution = 0.1;
 % Larger bin sizes produce more robust results but may cause errors due to
 % inaccurate linearization of mixing coefficients between the samples.
 % Good baseline value for resolution of 0.01 is 100.
-cctBinSize = 350;
+cctBinSize = 200;
 
 % Minimum correlated color temperature. All combinations producing
 % temperatures below this value are ignored. Also used as lower limit for
@@ -60,7 +60,7 @@ duvPenalty = 10;
 % the Planckian locus are ignore. This parameter is only for simulation
 % speed optimization. Too low values may lead into ignoring good results,
 % too high value may lead to longer calculation times.
-maxDuv = (1 - 0.8) / duvPenalty;
+maxDuv = 0.01;
 
 % Color temperature samples for inspection. inspectSpd function is called
 % with spds resulting in all of these correlated color temperatures.
@@ -97,7 +97,7 @@ cold = Yuji_BC2835L_6500K; coldL = 900;
 leds = [
     Led('red', red, redL, 1)
     Led('green', green, greenL, 0.3)
-    Led('blue', blue, blueL, 0.2)
+    Led('blue', blue, blueL, 0.3)
     Led('warm', warm, warmL, 1)
     Led('cold', cold, coldL, 1)
 ];

@@ -37,7 +37,7 @@ L = 380:5:780;
 
 % Reference spectrum
 CCT = spdToCct(spd);
-ref = refSpd(CCT);
+ref = refSpd(CCT, true);
 [x, y, z, X, Y, Z] = spdToXyz(spd);
 [~, ~, ~, X_ref, Y_ref, Z_ref] = spdToXyz(ref);
 [goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], targetRg, RfPenalty, RgPenalty, duvPenalty);

@@ -9,7 +9,7 @@ time = clock; disp(['Started at ' num2str(time(4)) ':' num2str(time(5))]); % Dis
 % LED mixing coefficient resolution. Higher the resolution, better the
 % results but time requirement is higher (in high order)
 % 5 LED mixing with resolution of 0.01 should take several hours.
-resolution = 0.01;
+resolution = 0.02;
 
 % Color temperature bin size in Kelvins for selecting best results.
 % Raw mixing results are binned by color temperature and for each bin the
@@ -64,8 +64,8 @@ maxDuv = 0.01;
 
 % Color temperature samples for inspection. inspectSpd function is called
 % with spds resulting in all of these correlated color temperatures.
-%inspectSpds = [1500, 2000, 2700, 4000, 5600, 6500];
-inspectSpds = [];
+inspectSpds = [1500, 2000, 2700, 4000, 5600, 6500];
+%inspectSpds = [];
 
 % Spectrums for red, green and blue LEDs. First value in the array (second
 % parameter for gaussmf) is the peak width in nanometers, and the second

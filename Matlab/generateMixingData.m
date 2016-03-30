@@ -53,7 +53,7 @@ for i = 1:length(rawMixingData)
     spd = mixSpd(ledSpds, rawMixingData(i, 2:end));
     [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
     uv = xyzToCie1976UcsUv([X Y Z]);
-    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1)));
+    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1), true));
     uvw = xyzToCie1976UcsUv([Xw Yw Zw]);
     duv = sqrt(sum((uv-uvw).^2));
     % Skip samples that deviate from planckian locus too much

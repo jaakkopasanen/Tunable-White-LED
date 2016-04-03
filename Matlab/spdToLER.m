@@ -1,9 +1,12 @@
 function [ LER ] = spdToLER( spd )
 %SPDTOLER Calculates luminous efficacy of radiation for spd
-%Input:
-%   spd := Spectral power distribution
-%Output:
-%   LER := Luminous efficacy radiation
+%Syntax
+%   LER = spdToLER(spd)
+%Input
+%   spd := Spectral power distribution sampled from 380nm to 780nm at 5nm
+%          intervals
+%Output
+%   LER := Luminous efficacy of radiation
 
 persistent cieSpectralLuminousEfficiency;
 if isempty(cieSpectralLuminousEfficiency)

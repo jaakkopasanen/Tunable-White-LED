@@ -1,8 +1,12 @@
-function [ CCT ] = spdToCct( spd )
-%SPDTOCCT Calculates correlated color temperature for spectrum
-%   CCT = spdToCct(spd) for spectral power distribution spd from
-%   380nm to 780nm sampled at 5nm returns correlated color temperature in
-%   Kelvins
+function [ cct ] = spdToCct( spd )
+%SPDTOCCT Calculates correlated color temperature for a spectrum
+%Syntax
+%   cct = spdToCct(spd)
+%Input
+%   spd := Spectral power distribution sampled from 380nm to 780nm at 5nm
+%          intervals
+%Output
+%   cct := Correlated color temperature in Kelvins
 
 % Calculate CIE 1931 color coordinates x, y
 [x, y] = spdToXyz(spd);
@@ -11,7 +15,7 @@ function [ CCT ] = spdToCct( spd )
 [u, v] = xyToUv(x, y);
 
 % Calculate correlated color temperature
-CCT = uvToCct(u, v);
+cct = uvToCct(u, v);
 
 end
 

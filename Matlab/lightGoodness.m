@@ -1,16 +1,20 @@
 function [ goodness, duv ] = lightGoodness( Rf, Rg, XYZ, XYZw, targetRg, RfPenalty, RgPenalty, duvPenalty )
 %lIGHTGOODNESS Calculates goodness points for light
-%Syntax:
-%   goodness = lightGoodness(Rf, Rg, XYZ)
-%Input:
-%   Rf       := TM-30-15 fidelity score
-%   Rg       := TM-30-15 gamut score
-%   XYZ      := CIE 1931 tristimulus values [X Y Z] for test illuminant
-%   XYZw     := CIE 1931 tristimulus values [X Y Z] for reference illuminant
-%   targetRg := Optional target for TM-30-15 gamut score. Defaults to 100.
-%Output:
+%Syntax
+%   goodness = lightGoodness(Rf, Rg, XYZ, XYZw, targetRg, RfPenalty, RgPenalty, duvPenalty)
+%Input
+%   Rf         := TM-30-15 fidelity score
+%   Rg         := TM-30-15 gamut score
+%   XYZ        := CIE 1931 tristimulus values [X Y Z] for test illuminant
+%   XYZw       := CIE 1931 tristimulus values [X Y Z] for reference white
+%   targetRg   := Optional target for TM-30-15 gamut score
+%   RfPenalty  := Penalty factor for error from maximum fidelity
+%   RgPenalty  := Penalty factor for error from target gamut
+%   duvPenalty := Penalty factor for color error from reference white
+%Output
 %   goodness := Arbitrary goodness scores
 %   duv      := Difference in CIE 1976 UCS color coordinates
+
 if ~exist('duvPenalty', 'var') || ~duvPenalty
     duvPenalty = 10;
 end
@@ -37,16 +41,9 @@ if sqrt((0.5-u)^2 + (0.4-v)^2) > sqrt((0.5-uw)^2 + (0.4-vw)^2)
     duvPenalty = duvPenalty * 2;
 end
 
-% Preference score
+% Maximum achiavable fidelity for given gamut
 maxRf = 100 - abs(100 - Rg)*5/4;
-%{
-% Distance from (maxRf, targetRg, uw, vw) point
-d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2 + (cp*(uw - u))^2 + (cp*(vw - v))^2);
-%d = sqrt((maxRf - Rf)^2 + (targetRg - Rg)^2) + duv*cp;
-% Force to range [0,100]. No negative values.
-goodness = 10*log(exp((100 - d) / 10) + 1);
-%}
-
+% Rf_error * Rg_error * duv_error
 goodness = (1 - RfPenalty*abs(maxRf - Rf)/100) * (1 - RgPenalty*abs(targetRg - Rg)/100) * (1-duv*duvPenalty) * 100;
 
 end

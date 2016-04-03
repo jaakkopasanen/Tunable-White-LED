@@ -1,13 +1,13 @@
 classdef Led
 
     properties
-        name;
-        spd;
-        cct;
-        lumens;
-        ler;
-        power;
-        maxCoeff;
+        name; % Name of the led, used for plots
+        spd; % Spectral power distribution from 380nm to 780nm at 5nm
+        cct; % Correlated color temperature
+        lumens; % Luminous flux
+        ler; % Luminous efficacy of radiation for the spd
+        power; % Radiation power
+        maxCoeff; % Maximum coefficient used in the mixing
     end
     
     methods

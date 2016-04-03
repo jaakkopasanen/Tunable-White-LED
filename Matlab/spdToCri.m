@@ -1,8 +1,13 @@
-function [ CRI, Ri ] = spdToCri( testSpd, nSamples )
-%SPDTOCRI Calculate CIE CRI Ra, CCT and special color renderin indexes
-%   See http://onlinelibrary.wiley.com/doi/10.1002/9781119975595.app7/pdf
-%   CRI is combined color rendering index (mean)
-%   Ri  is array of color rendering indexes for each test color
+function [ Ra, Ri ] = spdToCri( spd )
+%SPDTOCRI Calculates CRI Ra and special indexes Ri for a spectrum
+%Syntax
+%   [Ra, Ri] = spdToCri(spd)
+%Input
+%   spd := Spectral power distribution sampled from 380nm to 780nm at 5nm
+%          intervals
+%Output
+%   Ra := General color rendering index from the first 8 test color samples
+%   Ri := Special color rendering indexes for all 14 test color samples
 
 % Load test colors if not yet loaded
 persistent cieRaTestColors;
@@ -14,15 +19,13 @@ if isempty(cieRaTestColors)
     load('cie.mat', 'cieRaTestColors');
 end
 
-if ~exist('nSamples', 'var')
-    nSamples = 14;
-end
+nSamples = 14;
 
 % Calculate color temperature
-CCT = spdToCct(testSpd);
+CCT = spdToCct(spd);
 
 % Calculate colorimetry
-[x_k, y_k, ~, ~, ~, ~, K_k] = spdToXyz(testSpd); % CI1931 color coordinates
+[x_k, y_k, ~, ~, ~, ~, K_k] = spdToXyz(spd); % CI1931 color coordinates
 [u_k, v_k] = xyToUv(x_k, y_k); % CIE1960
 c_k = 1/v_k*(4-u_k-10*v_k); % c function for von Kries transformation
 d_k = (1.708*v_k + 0.404 - 1.481*u_k)/v_k; % d functoin for von Kries transformation
@@ -34,9 +37,9 @@ ref = refSpd(CCT);
 c_r = (4-u_r-10*v_r)/v_r;
 d_r = (1.708*v_r + 0.404 - 1.481*u_r)/v_r;
 
-    function [Ua, Va, Wa] = spdToUaVaWa( spd, K, isRef )
+    function [Ua, Va, Wa] = spdToUaVaWa( spd_, K, isRef )
         % CIE1931
-        [x, y, ~, ~, Y] = spdToXyz(spd);
+        [x, y, ~, ~, Y] = spdToXyz(spd_);
         % Scale reflected luminance with with emitted luminanace
         % http://www.konicaminolta.com/instruments/knowledge/color/part4/02.html
         %         100
@@ -85,12 +88,12 @@ for i = 1:nSamples
     [UaVaWa_r(1), UaVaWa_r(2), UaVaWa_r(3)] = spdToUaVaWa(cieRaTestColors(i,:).*ref, K_r, true);
     
     % Test light
-    [UaVaWa_k(1), UaVaWa_k(2), UaVaWa_k(3)]  = spdToUaVaWa(cieRaTestColors(i,:).*testSpd, K_k, false);
+    [UaVaWa_k(1), UaVaWa_k(2), UaVaWa_k(3)]  = spdToUaVaWa(cieRaTestColors(i,:).*spd, K_k, false);
     
     % Color rendering index for currect test color sample
     dE = sqrt(sum((UaVaWa_r - UaVaWa_k).^2));
     Ri(i) = 100 - 4.6 * dE;
 end
-CRI = mean(Ri);
+Ra = mean(Ri(1:8));
 
 end

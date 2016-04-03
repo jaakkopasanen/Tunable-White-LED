@@ -1,8 +1,20 @@
 function [ x, y, z, X, Y, Z, K ] = spdToXyz( spd, observerAngle )
 %SPDTOXYZ Calculates CIE1931 color coordinates x, y, z for spectrum
-%   [x, y, z] = spdToXyz(spd) for spectral power distribution spd from
-%   380nm to 780nm sampled at 5nm returns CIE1931 color coordinates x, y,
-%   z, X, Y, Z
+%Syntax
+%   [x, y, z, X, Y, Z, K] = spdToXyz(spd, observerAngle)
+%Input
+%   spd           := Spectral power distribution sampled from 380nm to
+%                    780nm at 5nm intervals
+%   observerAngle := 2 or 10. Use CIE 2 degree observer or 10 degree
+%                    observer?
+%Output
+%   x := Normalized X
+%   y := Normalized Y
+%   z := Normalized Z
+%   X := X tristimulus value
+%   Y := Y tristimulus value
+%   Z := Z tristimulus value
+%   K := K = 100/Y
 
 persistent cie2DegObserver;
 persistent cie10DegObserver;

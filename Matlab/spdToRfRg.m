@@ -1,8 +1,14 @@
 function [ Rf, Rg, bins ] = spdToRfRg( spd, cct )
 %SPDTORFRG Calculates TM-30-15 Rf and Rg metrics from SPD
-%Input:
-%   spd := Spectral power distribution from 380nm to 780nm sampled at 5nm
-%Output:
+%Syntax
+%   [Rf, Rg, bins] = spdToRfRg(spd, cct)
+%Input
+%   spd := Spectral power distribution sampled from 380nm to 780nm at 5nm
+%          intervals
+%   cct := Optional correlated color temperature. Not needed but will skip
+%          the CCT calculation speeding up the calculation if CCT has
+%          already been calculated
+%Output
 %   Rf     := Fidelity score [0,100]
 %   Rg     := Gamut score
 %   bins   := Data for all 16 bins. Row per bin, columns are:

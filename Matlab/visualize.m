@@ -52,7 +52,7 @@ plot(ccts, Rfs, ccts, Rgs, ccts, goodnesses, 'linewidth', 1.5);
 axis([minCCT maxCCT 50 125]);
 title('Fidelity (Rf), Saturation (Rg) and Goodness');
 xlabel('CCT (K)');
-legend('Rf', 'Rg', 'Goodness');
+legend('Rf', 'Rg', 'CRI Ra');
 grid on;
 
 %% Plot CIE 1976 UCS
@@ -78,6 +78,10 @@ xlabel('CCT (K)');
 ylabel('Luminous intensity (lm/m)');
 grid on;
 
+%%
+if exist('supertitle', 'var')
+    suptitle(supertitle);
+end
 
 %% Inspect spectrums at 2000K, 2700K, 4000K and 5600K
 if ~isempty(inspectSpds)

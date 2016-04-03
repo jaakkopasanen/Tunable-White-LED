@@ -30,14 +30,6 @@ for i = 1:size(ledGroups, 1)
     ];
 end
 
-%% Test performance and calculate E.T.A.
-tic;
-for i = 1:10
-    [Rf, Rg] = spdToRfRg(leds(2).spd);
-end
-time = clock; disp(['Started selecting at ' num2str(time(4)) ':' num2str(time(5))]);
-disp(['Estimated duration is ' num2str(round(toc * size(rawMixingData, 1) / 10 / 60)) 'min']);
-
 %% Select best results
 % goodness, index
 cctBins = zeros(ceil((maxCCT - minCCT) / cctBinSize) + 1, 2);

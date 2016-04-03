@@ -1,13 +1,15 @@
 function [ L, a, b, C, h ] = xyzToLab( X, Y, Z, Xn, Yn, Zn )
 %CIEXYZ_TO_CIELAB Converts CIEXYZ coordinates to CIELAB (+ Ch)
-%Input:
+%Syntax
+%   [L, a, b, C, H] = xyzToLab(X, Y, Z, Xn, Yn, Zn)
+%Input
 %   X: CIE1931 tristimulus X-coordinate
 %   Y: CIE1931 tristimulus Y-coordinate
 %   Z: CIE1931 tristimulus Y-coordinate
 %   Xn: Reference white point X coordinate
 %   Yn: Reference white point Z coordinate
 %   Zn: Reference white point Y coordinate
-%Output:
+%Output
 %   L: CIELAB lightness coordinate
 %   a: CIELAB red-green chromacity coordinate
 %   b: CIELAB blue-yellow chromacity coordinate

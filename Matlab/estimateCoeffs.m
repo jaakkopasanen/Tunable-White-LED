@@ -1,10 +1,12 @@
 function [ coeffs ] = estimateCoeffs( cct, coeffData )
 %ESTIMATECOEFFS Estimate coeffs for single color temperature
-%Input:
+%Syntax
+%   coeffs = estimateCoeffs(cct, coeffData)
+%Input
 %   cct       := Correlated color temperature in Kelvins
 %   coeffData := Matrix of coeffs, each row contains cct and coeffs for all
 %                three LEDS
-%Output:
+%Output
 %   coeffs := Estimated coeffs needed to produce required cct
 
 coeffs = zeros(1, size(coeffData, 2) - 1);

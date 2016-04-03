@@ -1,9 +1,11 @@
 function [ mixingData ] = mixLeds( leds, res, coeffs )
 %UNTITLED8 Mix leds by brute force
-%Inputs:
-%   leds       := Column array Led objects
-%   resolution := Mixing resolution e.g. 0.01
-%Outputs:
+%Syntax
+%   mixingData = mixLeds(leds, res, coeffs)
+%Input
+%   leds := Column array Led objects
+%   res  := Mixing resolution eg 0.01
+%Output
 %   mixingData := All mixtures. Each row contains one mixture, columns are
 %                 [cct, led1C, led2C, ... , ledNC]
 

@@ -1,8 +1,13 @@
 function [ ] = inspectSpd( spd, targetRg, RfPenalty, RgPenalty, duvPenalty, supertitle )
 %INSPECTSPD Plot all kinds of spectra inspections
-%Input:
+%Syntax
+%   inspectSpd(spd, targetRg, RfPenalty, RgPenalty, duvPenalty, supertitle)
+%Input
 %   spd        := Spectral power distribution from 380nm to 780nm at 5nm
-%   targetRg   := Optional target gamut score for goodness calculation
+%   targetRg   := Target gamut score
+%   RfPenalty  := Penalty factor for error from maximum fidelity
+%   RgPenalty  := Penalty factor for error from target gamut
+%   duvPenalty := Penalty factor for color error from reference white
 %   supertitle := Optional supertitle for figure
 
 % Load test color samples rgb data
@@ -58,21 +63,6 @@ xlabel('Wavelength (nm)');
 legend('Test SPD', 'Reference SPD');
 title(strcat(['CCT = ', num2str(CCT), 'K']));
 grid on;
-
-% Plot CRI bar graph
-%{
-subplot(2,3,2);
-hold on;
-for i = 1:length(Ri)
-   h = bar(i, Ri(i), 0.5);
-   set(h, 'FaceColor', cieRaTestColorsRgb(i, :));
-   set(h, 'EdgeColor', cieRaTestColorsRgb(i, :));
-end
-axis([0.5 14.5 0 100]);
-title(strcat(['CRI = ', num2str(round(CRI)), ', CRI_1_-_1_4 = ', num2str(round(CRI_1_14))]));
-grid on;
-hold off;
-%}
 
 % Plot CIE 1976 chromacity diagram
 ax = subplot(2,3,2);

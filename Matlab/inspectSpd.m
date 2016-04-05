@@ -85,6 +85,7 @@ hold off;
 
 % Plot Rf / Rg figure
 subplot(2,3,6);
+colormap([1 1 1; 0.8 0.8 0.8; 0.6 0.6 0.6]);
 imagesc([50 100], [60 140], TM3015RfRgBg);
 hold on;
 plot(Rf, Rg, 'ro', 'linewidth', 2);

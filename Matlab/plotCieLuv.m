@@ -18,18 +18,10 @@ if isempty(cie1976UcsFull)
     load('cie.mat', 'cie1976UcsFull');
 end
 
-% Generate border by iterating all visible light wavelengths
-wavelengths = zeros(60, 2);
-for l = 1:59
-    spd = zeros(1, 81);
-    spd(l+6) = 1;
-    [~, ~, ~, X, Y, Z] = spdToXyz(spd);
-    denom = X + 15*Y + 3*Z;
-    up = 4*X  / denom;
-    vp = 9*Y / denom;
-    wavelengths(l, :) = [up vp];
+persistent cie1976UcsBorder
+if isempty(cie1976UcsBorder)
+    load('cie.mat', 'cie1976UcsBorder');
 end
-wavelengths(60, :) = wavelengths(1, :);
 
 % Point
 u = zeros(1, size(XYZ, 1));
@@ -57,7 +49,7 @@ if exist('ax', 'var') % Axes given, use it
         plot(ax, cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
     end
     % Plot border
-    plot(ax, wavelengths(:, 1), wavelengths(:, 2), 'k', 'LineWidth', 1.5);
+    plot(ax, cie1976UcsBorder(:, 1), cie1976UcsBorder(:, 2), 'k', 'LineWidth', 1.5);
     % Plot with coordinates
     plot(ax, u, v, style);
 else % No axes given
@@ -65,7 +57,7 @@ else % No axes given
     if planckianLocus
         plot(cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
     end
-    plot(wavelengths(:, 1), wavelengths(:, 2), 'k', 'LineWidth', 1.5);
+    plot(cie1976UcsBorder(:, 1), cie1976UcsBorder(:, 2), 'k', 'LineWidth', 1.5);
     plot(u, v, style);
 end
 

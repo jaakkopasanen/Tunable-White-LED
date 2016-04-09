@@ -25,30 +25,28 @@ nSamples = 14;
 CCT = spdToCct(spd);
 
 % Calculate colorimetry
-[x_k, y_k, ~, ~, ~, ~, K_k] = spdToXyz(spd); % CI1931 color coordinates
-[u_k, v_k] = xyToUv(x_k, y_k); % CIE1960
-c_k = 1/v_k*(4-u_k-10*v_k); % c function for von Kries transformation
-d_k = (1.708*v_k + 0.404 - 1.481*u_k)/v_k; % d functoin for von Kries transformation
+[XYZ_t, xyz_t] = spdToXyz(spd); % CI1931 color coordinates
+K_t = 100 / XYZ_t(2);
+uv_t = xyzToUv(xyz_t); % CIE1960
+u_t = uv_t(1); v_t = uv_t(2);
+c_t = 1/v_t*(4-u_t-10*v_t); % c function for von Kries transformation
+d_t = (1.708*v_t + 0.404 - 1.481*u_t)/v_t; % d functoin for von Kries transformation
 
 % Generate reference illuminant and calculate colorimetry
 ref = refSpd(CCT);
-[x_r, y_r, ~, ~, ~, ~, K_r] = spdToXyz(ref);
-[u_r, v_r] = xyToUv(x_r, y_r);
+[XYZ_r, xyz_r] = spdToXyz(ref);
+K_r = 100 / XYZ_r(2);
+uv_r = xyzToUv(xyz_r);
+u_r = uv_r(1); v_r = uv_r(2);
 c_r = (4-u_r-10*v_r)/v_r;
 d_r = (1.708*v_r + 0.404 - 1.481*u_r)/v_r;
 
-    function [Ua, Va, Wa] = spdToUaVaWa( spd_, K, isRef )
+    function [UaVaWa] = spdToUaVaWa( spd_, isRef )
         % CIE1931
-        [x, y, ~, ~, Y] = spdToXyz(spd_);
-        % Scale reflected luminance with with emitted luminanace
-        % http://www.konicaminolta.com/instruments/knowledge/color/part4/02.html
-        %         100
-        % K = -----------, Y_reflected = K * Y
-        %      Y_emitted
-        Y = K*Y; 
+        [XYZ, xyz] = spdToXyz(spd_); Y = XYZ(2);
         
         % Move to CIE1960 color space
-        [u, v] = xyToUv(x, y);
+        uv = xyzToUv(xyz); u = uv(1); v = uv(2);
        
         % CIE 1964 U*V*W* color coordinates
         % https://en.wikipedia.org/wiki/CIE_1964_color_space
@@ -70,14 +68,15 @@ d_r = (1.708*v_r + 0.404 - 1.481*u_r)/v_r;
             d =(1.708*v - 1.481*u + 0.404 ) / v;
             
             % Transformed coordinates
-            up = (10.872 + 0.404*c_r/c_k*c - 4*d_r/d_k*d) / (16.518 + 1.481*c_r/c_k*c - d_r/d_k*d);
-            vp = 5.52 / (16.518 + 1.481*c_r/c_k*c - d_r/d_k*d);
+            up = (10.872 + 0.404*c_r/c_t*c - 4*d_r/d_t*d) / (16.518 + 1.481*c_r/c_t*c - d_r/d_t*d);
+            vp = 5.52 / (16.518 + 1.481*c_r/c_t*c - d_r/d_t*d);
             
             % Move chromatically adapted u,v color coordinates to
             % CIE1964 color space
             Va = 13*Wa*(vp - v_r);
             Ua = 13*Wa*(up - u_r);
         end
+        UaVaWa = [Ua Va Wa];
     end
 
 % Calculate colorimetries for test colors
@@ -85,13 +84,13 @@ Ri = zeros(1, nSamples);
 for i = 1:nSamples
     
     % Reference light
-    [UaVaWa_r(1), UaVaWa_r(2), UaVaWa_r(3)] = spdToUaVaWa(cieRaTestColors(i,:).*ref, K_r, true);
+    UaVaWa_r = spdToUaVaWa(cieRaTestColors(i,:).*ref.*K_r, true);
     
     % Test light
-    [UaVaWa_k(1), UaVaWa_k(2), UaVaWa_k(3)]  = spdToUaVaWa(cieRaTestColors(i,:).*spd, K_k, false);
+    UaVaWa_t = spdToUaVaWa(cieRaTestColors(i,:).*spd.*K_t, false);
     
     % Color rendering index for currect test color sample
-    dE = sqrt(sum((UaVaWa_r - UaVaWa_k).^2));
+    dE = sqrt(sum((UaVaWa_r - UaVaWa_t).^2));
     Ri(i) = 100 - 4.6 * dE;
 end
 Ra = mean(Ri(1:8));

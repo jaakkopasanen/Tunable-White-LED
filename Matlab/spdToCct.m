@@ -9,13 +9,13 @@ function [ cct ] = spdToCct( spd )
 %   cct := Correlated color temperature in Kelvins
 
 % Calculate CIE 1931 color coordinates x, y
-[x, y] = spdToXyz(spd);
+[~, xyz] = spdToXyz(spd);
 
 % Transform into CIE1960 color coordinates u, v
-[u, v] = xyToUv(x, y);
+uv = xyzToUv(xyz);
 
 % Calculate correlated color temperature
-cct = uvToCct(u, v);
+cct = uvToCct(uv);
 
 end
 

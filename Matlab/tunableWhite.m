@@ -9,7 +9,7 @@ time = clock; disp(['Started at ' num2str(time(4)) ':' num2str(time(5))]); % Dis
 % LED mixing coefficient resolution. Higher the resolution, better the
 % results but time requirement is higher (in high order)
 % 5 LED mixing with resolution of 0.01 should take several hours.
-resolution = 0.02;
+resolution = 0.05;
 
 % Color temperature bin size in Kelvins for selecting best results.
 % Raw mixing results are binned by color temperature and for each bin the
@@ -108,7 +108,7 @@ supertitle = [
 leds = [
     Led('red', red, redL, 1)
     Led('green', green, greenL, 0.3)
-    Led('blue', blue, blueL, 0.3)
+    %Led('blue', blue, blueL, 0.3)
     Led('warm', warm, warmL, 1)
     Led('cold', cold, coldL, 1)
 ];
@@ -126,7 +126,7 @@ leds = [
 ledGroups = [
     %1 2 4 5 % From red to cold white
     %2 3 5 0  % From cold white onwards
-    1 2 3 4 5
+    1 2 3 4 
     %1 2
     %2 3
 ];

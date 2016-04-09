@@ -43,10 +43,10 @@ for i = 1:length(rawMixingData)
     end
     
     spd = mixSpd(ledSpds, rawMixingData(i, 2:end));
-    [~, ~, ~, X, Y ,Z] = spdToXyz(spd);
-    uv = xyzToCie1976UcsUv([X Y Z]);
-    [~, ~, ~, Xw, Yw ,Zw] = spdToXyz(refSpd(rawMixingData(i, 1), true));
-    uvw = xyzToCie1976UcsUv([Xw Yw Zw]);
+    XYZ = spdToXyz(spd);
+    uv = xyzToCie1976UcsUv(XYZ);
+    XYZw = spdToXyz(refSpd(rawMixingData(i, 1), true));
+    uvw = xyzToCie1976UcsUv(XYZw);
     duv = sqrt(sum((uv-uvw).^2));
     % Skip samples that deviate from planckian locus too much
     if duv > maxDuv
@@ -59,7 +59,7 @@ for i = 1:length(rawMixingData)
     cctBin = floor((rawMixingData(i, 1) - minCCT) / cctBinSize) + 1;
 
     [Rf, Rg] = spdToRfRg(spd, rawMixingData(i, 1));
-    goodness = lightGoodness(Rf, Rg, [X Y Z], [Xw Yw Zw], targetRg, RfPenalty, RgPenalty, duvPenalty);
+    goodness = lightGoodness(Rf, Rg, XYZ, XYZw, targetRg, RfPenalty, RgPenalty, duvPenalty);
     
     % Best so far -> update
     if goodness > cctBins(cctBin, 1)

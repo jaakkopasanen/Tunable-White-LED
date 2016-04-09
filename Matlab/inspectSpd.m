@@ -43,13 +43,13 @@ L = 380:5:780;
 % Reference spectrum
 CCT = spdToCct(spd);
 ref = refSpd(CCT, true);
-[x, y, z, X, Y, Z] = spdToXyz(spd);
-[~, ~, ~, X_ref, Y_ref, Z_ref] = spdToXyz(ref);
-[goodness, duv] = lightGoodness(Rf, Rg, [X Y Z], [X_ref Y_ref Z_ref], targetRg, RfPenalty, RgPenalty, duvPenalty);
-ref = ref.*(Y/Y_ref);
+[XYZ, xyz] = spdToXyz(spd);
+XYZ_ref = spdToXyz(ref);
+[goodness, duv] = lightGoodness(Rf, Rg, XYZ, XYZ_ref, targetRg, RfPenalty, RgPenalty, duvPenalty);
+ref = ref.*(XYZ(2)/XYZ_ref(2));
 
 % Light color
-rgb = xyz2rgb([x y z]);
+rgb = xyz2rgb(xyz);
 rgb = rgb.*(1/max(rgb));
 rgb(rgb < 0) = 0;
 figure('Color', rgb);
@@ -66,7 +66,7 @@ grid on;
 
 % Plot CIE 1976 chromacity diagram
 ax = subplot(2,3,2);
-plotCieLuv([X Y Z], true, ax);
+plotCieLuv(XYZ, true, ax);
 title(strcat(['\Deltau''v'' = ', num2str(duv)]));
 
 % Plot Rf by hue

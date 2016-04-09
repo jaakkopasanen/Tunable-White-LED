@@ -35,8 +35,10 @@ end
 cfactor = 7.54;
 
 % Calculate colorimetry for test illuminant
-[~, ~, ~, X_t, Y_t, Z_t, K_t] = spdToXyz(spd, 10);
-XYZ_t = K_t * [X_t;Y_t;Z_t];
+XYZ_t = spdToXyz(spd, 10);
+XYZ_t = XYZ_t';
+K_t = 100 / XYZ_t(2);
+XYZ_t = K_t * XYZ_t;
 %X_t = K_t * X_t;
 %Y_t = K_t * Y_t;
 %Z_t = K_t * Z_t;
@@ -50,8 +52,10 @@ end
 ref = refSpd(cct, true);
 
 % Calculate colorimetry for reference illuminant
-[~, ~, ~, X_r, Y_r, Z_r, K_r] = spdToXyz(ref, 10);
-XYZ_r = K_r * [X_r;Y_r;Z_r];
+XYZ_r = spdToXyz(ref, 10);
+XYZ_r = XYZ_r';
+K_r = 100 / XYZ_r(2);
+XYZ_r = K_r * XYZ_r;
 %X_r = K_r * X_r;
 %Y_r = K_r * Y_r;
 %Z_r = K_r * Z_r;
@@ -102,8 +106,8 @@ dEi = zeros(1, 99);
         end
         
         % CIE 1931
-        [~, ~, ~, X, Y, Z] = spdToXyz(spd, 10);
-        XYZ = [X; Y; Z];
+        XYZ = spdToXyz(spd, 10);
+        XYZ = XYZ';
         
         k = 1 / (5 * LA + 1);
         FL = 1/5*k^4 * 5*LA + 1/10*(1 - k^4)^2 * (5*LA)^(1/3);

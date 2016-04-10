@@ -10,6 +10,19 @@ function [ ] = inspectSpd( spd, targetRg, RfPenalty, RgPenalty, duvPenalty, supe
 %   duvPenalty := Penalty factor for color error from reference white
 %   supertitle := Optional supertitle for figure
 
+if ~exist('duvPenalty', 'var')
+    duvPenalty = 10;
+end
+if ~exist('RgPenalty', 'var')
+    RgPenalty = 1;
+end
+if ~exist('RfPenalty', 'var')
+    RfPenalty = 1;
+end
+if ~exist('targetRg', 'var')
+    targetRg = 100;
+end
+
 % Load test color samples rgb data
 persistent cieRaTestColorsRgb;
 if isempty(cieRaTestColorsRgb)

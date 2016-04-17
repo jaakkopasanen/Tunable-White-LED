@@ -20,12 +20,10 @@ if isempty(cie1960Cct)
 end
 
 u = uv(1); v = uv(2);
-%
 uInd = floor(u / 0.01 + 1);
 vInd = floor(v / 0.01 + 1);
 minCct = min(min(cie1960Cct(vInd:vInd+1, uInd:uInd+1)));
 maxCct = max(max(cie1960Cct(vInd:vInd+1, uInd:uInd+1)));
-%}
 %minCct = 1; maxCct = 25000;
 
 [d_min, cct] = min(sqrt((cie1960PlanckianLocusUv(minCct:maxCct,1) - u).^2 + (cie1960PlanckianLocusUv(minCct:maxCct,2) - v).^2));

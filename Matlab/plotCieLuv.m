@@ -39,11 +39,10 @@ else
     style = 'ok';
 end
 
-hold on;
-
 if exist('ax', 'var') % Axes given, use it
     % Plot chromacity diagram background
     imagesc([0 0.63], [0 0.6], flip(cie1976UcsFull, 1), 'Parent', ax);
+    hold on;
     % Plot planckian locus
     if planckianLocus
         plot(ax, cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
@@ -54,6 +53,7 @@ if exist('ax', 'var') % Axes given, use it
     plot(ax, u, v, style);
 else % No axes given
     imagesc([0 0.63], [0 0.6], flip(cie1976UcsFull, 1));
+    hold on;
     if planckianLocus
         plot(cie1976PlanckianLocusUv(:, 1), cie1976PlanckianLocusUv(:, 2), '--k');
     end
@@ -65,6 +65,8 @@ set(gca, 'ydir', 'normal');
 axis([0 0.63 0 0.6]);
 xlabel('u''');
 ylabel('v''');
+
+hold off;
 
 end
 

@@ -1,3 +1,4 @@
+clear all;
 L = 380:5:780;
 red = gaussmf(L, [20/2.355 630]); redL = 160;
 green = gaussmf(L, [20/2.355 525]); greenL = 320;
@@ -27,8 +28,6 @@ xlabel('Wavelength (nm)');
 
 % Gamma
 subplot(2,2,3)
-
-XYZ = spdToXyz(yellow);
 uv_r = xyzToCie1976UcsUv(spdToXyz(red));
 uv_g = xyzToCie1976UcsUv(spdToXyz(green));
 uv_b = xyzToCie1976UcsUv(spdToXyz(blue));
@@ -38,6 +37,7 @@ uv_p = [0.338 0.297];
 d_rg = sqrt(sum((uv_g-uv_r).^2));
 d_gb = sqrt(sum((uv_g-uv_b).^2));
 d_rb = sqrt(sum((uv_b-uv_r).^2));
+%{
 d_y = sqrt(sum((uv_r-uv_y).^2)) / d_rg;
 d_c = sqrt(sum((uv_g-uv_c).^2)) / d_gb;
 d_p = sqrt(sum((uv_r-uv_p).^2)) / d_rb;
@@ -78,10 +78,11 @@ gb_gamma = (1-d).^gamma_gb;
 gamma_rb = log(rb50)/log(1-d_p);
 gamma_br = log(1-rb50)/log(d_p);
 rb_gamma = (1-d).^gamma_rb;
-
+%}
 d_true_rg = zeros(1,101);
 d_true_gb = zeros(1,101);
 d_true_rb = zeros(1,101);
+
 c = 0:0.01:1;
 for i = 1:101
     d_true_rg(i) = sqrt(sum((uv_r-xyzToCie1976UcsUv(spdToXyz(mixSpd([red;green], [c(i),1-c(i)])))).^2))/d_rg;
@@ -89,14 +90,17 @@ for i = 1:101
     d_true_rb(i) = sqrt(sum((uv_r-xyzToCie1976UcsUv(spdToXyz(mixSpd([red;blue], [c(i),1-c(i)])))).^2))/d_rb;
 end
 
+% TODO: Rational fit: Numerator degree = 1, denominator degree = 2
+
 plot(...
-    d,rg_gamma, d_true_rg,c,...
-    d,gb_gamma, d_true_gb,c,...
-    d,rb_gamma, d_true_rb,c...
+    d_true_rg,c,...
+    d_true_gb,c,...
+    d_true_rb,c...
 );
 axis([0 1 0 1]);
 xlabel('Relative distance'); ylabel('Power');
-legend('Gamma RG', 'True RG', 'Gamma GB', 'True GB', 'Gamma RB', 'True RB');
+legend('True RG', 'True GB', 'True RB');
+grid on;
 
 % Gamut
 subplot(2,2,1)
@@ -105,10 +109,10 @@ XYZ = [
     spdToXyz(green)
     spdToXyz(blue)
     spdToXyz(red)
-    spdToXyz(mixSpd([red;green],[rg50;1-rg50]))
-    spdToXyz(mixSpd([green;blue],[gb50;1-gb50]))
-    spdToXyz(mixSpd([red;blue],[rb50;1-rb50]))
-    spdToXyz(mixSpd([red;green],[rg50;1-rg50]))
+    %spdToXyz(mixSpd([red;green],[rg50;1-rg50]))
+    %spdToXyz(mixSpd([green;blue],[gb50;1-gb50]))
+    %spdToXyz(mixSpd([red;blue],[rb50;1-rb50]))
+    %spdToXyz(mixSpd([red;green],[rg50;1-rg50]))
 ];
 plotCieLuv(XYZ, false)
 
@@ -137,19 +141,17 @@ for i = 1:10
     d_pg = sqrt(sum((uv_r-p_g).^2)) / d_rb;
     d_pb = sqrt(sum((uv_r-p_b).^2)) / d_rg;
     % Interpolated gammas
+    %{
     gamma_r = d_pr * (gamma_rb - gamma_rg) + gamma_rg;
     gamma_g = d_pg * (gamma_gb - gamma_gr) + gamma_gr;
     gamma_b = d_pb * (gamma_bg - gamma_br) + gamma_br;
-    [
-        gamma_rg gamma_r gamma_rb
-        gamma_gr gamma_g gamma_gb
-        gamma_br gamma_b gamma_bg
-    ];
     m = [
         (1-d_r)^gamma_r
         (1-d_g)^gamma_g
         (1-d_b)^gamma_b
     ];
+    %}
+    
     m = m.*(1/sum(m));
     uv_ests(i,:) = xyzToCie1976UcsUv(spdToXyz(mixSpd([red;green;blue], m)));
 end
@@ -168,6 +170,6 @@ for i = 1:size(uvs,1)
     plot(uv_ests(i,1), uv_ests(i,2), '+k');
     plot([uvs(i,1) uv_ests(i,1)], [uvs(i,2) uv_ests(i,2)], 'k');
 end
-
+hold off;
 c = 0:0.01:1;
 

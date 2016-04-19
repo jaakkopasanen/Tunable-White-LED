@@ -1,15 +1,4 @@
-- Fix true coefficients to take LED max coefficient into account
-
-- Fix max lumens to take LED max coefficient into account
-
-- Save CIE1976UCS border
-
-- Faster CCT calculation
-  - Gradient descent?
-  - Estimated limits?
-
-- Optimizing to certain color temperature instead of brute forcing all possible combinations
-  - Use some sort of gradient descent and (u',v') coordinate based estimation (front compensation)
+- Better resolution for RGB calibration (or rather wider range)
 
 - Calibration thingy with blinking (warm / cold+red), (warm+cold / cold+red), (warm / cold+red / warm%)
   => Find out radiation power coefficients relative to warm LED

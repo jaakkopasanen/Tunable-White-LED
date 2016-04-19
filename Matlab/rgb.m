@@ -1,17 +1,12 @@
-clear;
+%clear;
 tic
 % Wavelengths
 L = 380:5:780;
-
+figure;
 % LEDs
-red = gaussmf(L, [20/2.355 630])*1.7; redL = 160;
-green = gaussmf(L, [20/2.355 525]); greenL = 320;
-blue = gaussmf(L, [20/2.355 465])*2; blueL = 240;
-leds = [
-    Led('red', red, redL, 1)
-    Led('green', green, greenL, 1)
-    Led('blue', blue, blueL, 1)
-];
+%red = gaussmf(L, [20/2.355 630])*1.7; redL = 160;
+%green = gaussmf(L, [20/2.355 525]); greenL = 320;
+%blue = gaussmf(L, [20/2.355 465])*2; blueL = 240;
 
 % Parameters
 resolution = 0.02;
@@ -80,7 +75,7 @@ subplot(2,3,4);
 contourf(U,V,HM(:,:,1),100,'LineColor','none');
 hold on; plot(sourceUvs(:,1), sourceUvs(:,2), 'k'); hold off;
 axis([0 0.63 0 0.6]);
-colorbar;
+%colorbar;
 title('Red LED heatmap');
 xlabel('u'''); ylabel('v''');
 % Heatmap for green
@@ -88,7 +83,7 @@ subplot(2,3,5);
 contourf(U,V,HM(:,:,2),100,'LineColor','none');
 hold on; plot(sourceUvs(:,1), sourceUvs(:,2), 'k'); hold off;
 axis([0 0.63 0 0.6]);
-colorbar;
+%colorbar;
 title('Green LED heatmap');
 xlabel('u'''); ylabel('v''');
 % Heatmap for blue
@@ -96,7 +91,7 @@ subplot(2,3,6);
 contourf(U,V,HM(:,:,3),100,'LineColor','none');
 hold on; plot(sourceUvs(:,1), sourceUvs(:,2), 'k'); hold off;
 axis([0 0.63 0 0.6]);
-colorbar;
+%colorbar;
 title('Blue LED heatmap');
 xlabel('u'''); ylabel('v''');
 

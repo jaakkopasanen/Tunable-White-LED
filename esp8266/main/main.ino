@@ -17,6 +17,11 @@ const int pwmRange_ = 1023;
 ESP8266WebServer server(80);
 
 /**
+ * Is the light on?
+ */
+bool onOff_ = false;
+
+/**
  * Data structure for CIE 1976 UCS color coordinates
  */
 struct Cie1976Ucs {
@@ -83,6 +88,27 @@ void setRaw (RGB raw) {
 }
 
 /**
+ * Getter for onOff
+ */
+bool getOnOff () {
+  return onOff_;
+}
+
+/**
+ * Sets light on or off
+ */
+void setOnOff (bool onOff) {
+  onOff_ = onOff;
+  if (onOff) {
+    setRaw(getRaw());
+  } else {
+    analogWrite(redPin_, 0);
+    analogWrite(greenPin_, 0);
+    analogWrite(bluePin_, 0);
+  }
+}
+
+/**
  * Get CIE 1976 UCS color coordinates
  */
 Cie1976Ucs getCie1976Ucs () {
@@ -109,6 +135,14 @@ void setCie1976Ucs (Cie1976Ucs luv) {
   raw.R = 1 - 2 * sqrt( pow((luv.u - 0.5444), 2.0) + pow((luv.v - 0.5183), 2.0) );
   raw.G = 1 - 2 * sqrt( pow((luv.u - 0.0412), 2.0) + pow((luv.v - 0.5837), 2.0) );
   raw.B = 1 - 2 * sqrt( pow((luv.u - 0.1232), 2.0) + pow((luv.v - 0.1657), 2.0) );
+
+  float m = raw.R;
+  if (raw.G > m) m = raw.G;
+  if (raw.B > m) m = raw.B;
+  float Y = 100 * pow(((luv.L + 16) / 116), 3);
+  raw.R = raw.R * (1 / m) * (Y / 100);
+  raw.G = raw.G * (1 / m) * (Y / 100);
+  raw.B = raw.B * (1 / m) * (Y / 100);
 
   Serial.print("Converted to raw: ");
   Serial.print(raw.R); Serial.print(", ");
@@ -170,52 +204,33 @@ void httpOnboardLedsController () {
 }
 
 /**
- * HTTP API for CIE 1976 UCS color coordinates
+ * HTTP API for setting the light on
  */
-void httpCie1976UcsController () {
-  float L = -1, u = -1, v = -1;
-  // Parse args
-  for (uint8_t i = 0; i < server.args(); ++i) {
-    if (server.argName(i) == "L") {
-      L = server.arg(i).toFloat();
-    } else if (server.argName(i) == "u") {
-      u = server.arg(i).toFloat();
-    } else if (server.argName(i) == "v") {
-      v = server.arg(i).toFloat();
-    }
-  }
-
-  int httpStatus = 200;
-
-  // All or none of the parameters must be missing
-  if (L > 0 && u > 0 && v > 0) {
-    // All parameters given -> set new color
-    Cie1976Ucs luv = {L, u, v};
-    setCie1976Ucs(luv);
-    
-  } else if (L < 0 && u < 0 && v < 0) {
-    // None of the parameters given -> read existing color
-    Cie1976Ucs luv = getCie1976Ucs();
-    L = luv.L;
-    u = luv.u;
-    v = luv.v;
-    
-  } else {
-    // Some of the parameters missing -> invalid request
-    httpStatus = 400;
-  }
-
+void httpOnController () {
   // JSON response
-  StaticJsonBuffer<60> jsonBuffer;
+  StaticJsonBuffer<20> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
-  json["L"] = L;
-  json["u"] = u;
-  json["v"] = v;
+  json["onOff"] = true;
   String response;
   json.prettyPrintTo(response);
 
   // Send response
-  server.send(httpStatus, "application/json", response);
+  server.send(200, "application/json", response);
+}
+
+/**
+ * HTTP API for setting the light off
+ */
+ void httpOffController () {
+  // JSON response
+  StaticJsonBuffer<20> jsonBuffer;
+  JsonObject& json = jsonBuffer.createObject();
+  json["onOff"] = false;
+  String response;
+  json.prettyPrintTo(response);
+
+  // Send response
+  server.send(200, "application/json", response);
 }
 
 /**
@@ -268,6 +283,55 @@ void httpRawController () {
   server.send(httpStatus, "application/json", response);
 }
 
+/**
+ * HTTP API for CIE 1976 UCS color coordinates
+ */
+void httpCie1976UcsController () {
+  float L = -1, u = -1, v = -1;
+  // Parse args
+  for (uint8_t i = 0; i < server.args(); ++i) {
+    if (server.argName(i) == "L") {
+      L = server.arg(i).toFloat();
+    } else if (server.argName(i) == "u") {
+      u = server.arg(i).toFloat();
+    } else if (server.argName(i) == "v") {
+      v = server.arg(i).toFloat();
+    }
+  }
+
+  int httpStatus = 200;
+
+  // All or none of the parameters must be missing
+  if (L > 0 && u > 0 && v > 0) {
+    // All parameters given -> set new color
+    Cie1976Ucs luv = {L, u, v};
+    setCie1976Ucs(luv);
+    
+  } else if (L < 0 && u < 0 && v < 0) {
+    // None of the parameters given -> read existing color
+    Cie1976Ucs luv = getCie1976Ucs();
+    L = luv.L;
+    u = luv.u;
+    v = luv.v;
+    
+  } else {
+    // Some of the parameters missing -> invalid request
+    httpStatus = 400;
+  }
+
+  // JSON response
+  StaticJsonBuffer<60> jsonBuffer;
+  JsonObject& json = jsonBuffer.createObject();
+  json["L"] = L;
+  json["u"] = u;
+  json["v"] = v;
+  String response;
+  json.prettyPrintTo(response);
+
+  // Send response
+  server.send(httpStatus, "application/json", response);
+}
+
 void httpNotFoundController () {
   server.send(404, "text/plain", "404");
 }
@@ -312,6 +376,8 @@ void setup(void){
   // Routes
   server.on("/", httpIndexController);
   server.on("/onboardLeds", httpOnboardLedsController);
+  server.on("/on", httpOnController);
+  server.on("/off", httpOffController);
   server.on("/raw", httpRawController);
   server.on("/cie1976Ucs", httpCie1976UcsController);
   //server.on("/srgb", httpSrgbController);

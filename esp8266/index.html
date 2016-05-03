@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { background: #333; margin: 16px; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .button-group { width: 100%; height: 56px; margin-bottom: 16px; }
+    button {
+      display: block;
+      float: left;
+      width: 50%;
+      height: 56px;
+      color: white;
+      border: none;
+    }
+    button:hover { cursor: pointer; }
+    #on-button {
+      background-color: #1E7B1E;
+      border-top-right-radius: 2px;
+      border-bottom-right-radius: 2px;
+    }
+    #off-button {
+      background-color: #CC1F00;
+      border-top-left-radius: 2px;
+      border-bottom-left-radius: 2px;
+    }
+    #on-button.active { background-color: #5BD75B; }
+    #off-button.active { background-color: #FF6347; }
+    .img {
+      width: 100%;
+      border-radius: 2px;
+      position: relative;
+      overflow: hidden;
+    }
+    .cursor {
+      position: absolute;
+      top: 50%; left: -10px;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background: black;
+    }
+    #dimming {
+      height: 56px;
+      margin-bottom: 16px;
+      background: linear-gradient(to right, #000000 0%, #ffffff 100%);
+    }
+    #dimming-cursor {
+      background: red;
+    }
+    #color-temperature {
+       background-repeat: repeat-y;
+       background-size: contain;
+       height: 56px;
+       margin-bottom: 16px;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <div class="button-group">
+      <button id="off-button" type="button">OFF</button>
+      <button id="on-button" type="button">ON</button>
+    </div>
+    <div id="dimming" class="img"><div id="dimming-cursor" class="cursor"></diV></div>
+    <div id="color-temperature" class="img" style="background-image: url('https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/colorTemperatureChart_1000K_10000K.jpg');">
+      <div id="color-temperature-cursor" class="cursor"></div>
+    </div>
+    <div id="cie1976ucs" class="img">
+      <img class="img" src="https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/CIE_1976_UCS_06_063_Full.jpg">
+      <div id="cie1976ucs-cursor" class="cursor"></div>
+    </div>
+  </div>
+</body>
+
+<script type="text/javascript">var onOff_ = true;var L_ = 75;var u_ = 0.2;var v_ = 0.5;</script>
+
+<script type="text/javascript">
+  var onButton = document.getElementById('on-button');
+  var offButton = document.getElementById('off-button');
+  var dimming = document.getElementById('dimming');
+  var dimmingCursor = document.getElementById('dimming-cursor');
+  var cie1976Ucs = document.getElementById('cie1976ucs');
+  var cie1976UcsCursor = document.getElementById('cie1976ucs-cursor');
+  var colorTemperature = document.getElementById('color-temperature');
+  var colorTemperatureCursor = document.getElementById('color-temperature-cursor');
+  
+  var ajax = function (url) {
+    console.log('AJAX:', url);
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.send();
+    xhr.onreadystatechange = function () {
+      if (xhr.readyState === 4) {
+        if (xhr.status === 200) {
+          console.log('Success:', url);
+        } else {
+          console.log('Error:', xhr.responseText);
+        }
+      }
+    };
+  };
+  
+  var setOnOff = function (on, doAjax) {
+    if (on){
+      onButton.className = 'active';
+      offButton.className = '';
+      if (doAjax) ajax('/on');
+    } else {
+      offButton.className = 'active';
+      onButton.className = '';
+      if (doAjax) ajax('/off');
+    }
+  };
+  setOnOff(onOff_);
+  
+  onButton.addEventListener('click', function () {
+    setOnOff(true, true);
+  });
+  offButton.addEventListener('click', function () {
+    setOnOff(false, true);
+  });
+  
+  var setDimming = function (L, doAjax) {
+    L_ = L;
+    dimmingCursor.style.left = L + '%';
+    if (doAjax) ajax('/cie1976Ucs?L=' + L + '&u=' + u_ + '&v=' + v_);
+  };
+  
+  dimming.addEventListener('click', function (ev) {
+    var L = (ev.pageX - this.offsetLeft) / dimming.offsetWidth * 100;
+    setDimming(L, true);
+  });
+  
+  var setCie1976Ucs = function (u, v, doAjax) {
+    u_ = u;
+    v_ = v;
+    cie1976UcsCursor.style.left = (u / 0.63 * 100) + '%';
+    cie1976UcsCursor.style.top = ((1 - v / 0.6) * 100) + '%';
+    unsetColorTemperature();
+    if (doAjax) ajax('/cie1976Ucs?L=' + L_ + '&u=' + u + '&v=' + v);
+  };
+  
+  var unsetCie1976Ucs = function () {
+    cie1976UcsCursor.style.left = '-10%';
+    cie1976UcsCursor.style.top = '-10%';
+  };
+  
+  cie1976Ucs.addEventListener('click', function (ev) {
+    var u = (ev.pageX - this.offsetLeft) / cie1976Ucs.offsetWidth * 0.63;
+    var v = (1 - (ev.pageY - this.offsetTop) / cie1976Ucs.offsetHeight) * 0.6;
+    setCie1976Ucs(u, v, true);
+  });
+  
+  var setColorTemperature = function (T, doAjax) {
+    colorTemperatureCursor.style.left = ((T - 1000) / 9000 * 100) + '%';
+    unsetCie1976Ucs();
+    if (doAjax) ajax('/colorTemperature?T=' + T);
+  };
+  
+  var unsetColorTemperature = function () {
+    colorTemperatureCursor.style.left = '-10%';
+  };
+  
+  colorTemperature.addEventListener('click', function (ev) {
+    var T = (ev.pageX - this.offsetLeft) / colorTemperature.offsetWidth * 9000 + 1000;
+    setColorTemperature(T, true);
+  });
+  
+  setCie1976Ucs(u_, v_, false);
+  setDimming(L_, false);
+</script>
+</html>

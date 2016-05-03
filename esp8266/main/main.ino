@@ -6,6 +6,7 @@
 #include <ESP8266mDNS.h>
 #include <ArduinoJson.h>
 #include <cmath>
+
 const int redPin_    = 15; //12
 const int greenPin_  = 13; //15
 const int bluePin_   = 12; //13
@@ -14,6 +15,15 @@ const int w2Pin_     = 4;
 const int led1Pin_   = 5;
 const int led2Pin_   = 1;
 const int pwmRange_ = 1023;
+
+const char HTML_HEAD[] PROGMEM = "<!DOCTYPE html><html><head> <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">";
+const char HTML_STYLE[] PROGMEM = "<style>body{background: #333; margin: 16px;}.container{max-width: 600px; margin: 0 auto;}.button-group{width: 100%; height: 56px; margin-bottom: 16px;}button{display: block; float: left; width: 50%; height: 56px; color: white; border: none;}button:hover{cursor: pointer;}#on-button{background-color: #1E7B1E; border-top-right-radius: 2px; border-bottom-right-radius: 2px;}#off-button{background-color: #CC1F00; border-top-left-radius: 2px; border-bottom-left-radius: 2px;}#on-button.active{background-color: #5BD75B;}#off-button.active{background-color: #FF6347;}.img{width: 100%; border-radius: 2px; position: relative; overflow: hidden;}.cursor{position: absolute; top: 50%; left: -10px; width: 6px; height: 6px; border-radius: 50%; transform: translate(-50%, -50%); background: black;}#dimming{height: 56px; margin-bottom: 16px; background: linear-gradient(to right, #000000 0%, #ffffff 100%);}#dimming-cursor{background: red;}#color-temperature{background-repeat: repeat-y; background-size: contain; height: 56px; margin-bottom: 16px;}</style>";
+const char HTML_HEAD_END[] PROGMEM = "</head";
+const char HTML_BODY[] PROGMEM = "<body> <div class=\"container\"> <div class=\"button-group\"> <button id=\"off-button\" type=\"button\">OFF</button> <button id=\"on-button\" type=\"button\">ON</button> </div><div id=\"dimming\" class=\"img\"><div id=\"dimming-cursor\" class=\"cursor\"></diV></div><div id=\"color-temperature\" class=\"img\" style=\"background-image: url('https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/colorTemperatureChart_1000K_10000K.jpg');\"> <div id=\"color-temperature-cursor\" class=\"cursor\"></div></div><div id=\"cie1976ucs\" class=\"img\"> <img class=\"img\" src=\"https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/CIE_1976_UCS_06_063_Full.jpg\"> <div id=\"cie1976ucs-cursor\" class=\"cursor\"></div></div></div></body>";
+const char HTML_JSONP[] PROGMEM = "<script type=\"text/javascript\">var onOff_ = {{onOff_}};var L_ = {{L_}};var u_ = {{u_}};var v_ = {{v_}};</script>";
+const char HTML_SCRIPT[] PROGMEM = "<script type=\"text/javascript\">var onButton=document.getElementById('on-button'); var offButton=document.getElementById('off-button'); var dimming=document.getElementById('dimming'); var dimmingCursor=document.getElementById('dimming-cursor'); var cie1976Ucs=document.getElementById('cie1976ucs'); var cie1976UcsCursor=document.getElementById('cie1976ucs-cursor'); var colorTemperature=document.getElementById('color-temperature'); var colorTemperatureCursor=document.getElementById('color-temperature-cursor'); var ajax=function (url){console.log('AJAX:', url); var xhr=new XMLHttpRequest(); xhr.open('GET', url, true); xhr.send(); xhr.onreadystatechange=function (){if (xhr.readyState===4){if (xhr.status===200){console.log('Success:', url);}else{console.log('Error:', xhr.responseText);}}};}; var setOnOff=function (on, doAjax){if (on){onButton.className='active'; offButton.className=''; if (doAjax) ajax('/on');}else{offButton.className='active'; onButton.className=''; if (doAjax) ajax('/off');}}; setOnOff(onOff_); onButton.addEventListener('click', function (){setOnOff(true, true);}); offButton.addEventListener('click', function (){setOnOff(false, true);}); var setDimming=function (L, doAjax){L_=L; dimmingCursor.style.left=L + '%'; if (doAjax) ajax('/cie1976Ucs?L=' + L + '&u=' + u_ + '&v=' + v_);}; dimming.addEventListener('click', function (ev){var L=(ev.pageX - this.offsetLeft) / dimming.offsetWidth * 100; setDimming(L, true);}); var setCie1976Ucs=function (u, v, doAjax){u_=u; v_=v; cie1976UcsCursor.style.left=(u / 0.63 * 100) + '%'; cie1976UcsCursor.style.top=((1 - v / 0.6) * 100) + '%'; unsetColorTemperature(); if (doAjax) ajax('/cie1976Ucs?L=' + L_ + '&u=' + u + '&v=' + v);}; var unsetCie1976Ucs=function (){cie1976UcsCursor.style.left='-10%'; cie1976UcsCursor.style.top='-10%';}; cie1976Ucs.addEventListener('click', function (ev){var u=(ev.pageX - this.offsetLeft) / cie1976Ucs.offsetWidth * 0.63; var v=(1 - (ev.pageY - this.offsetTop) / cie1976Ucs.offsetHeight) * 0.6; setCie1976Ucs(u, v, true);}); var setColorTemperature=function (T, doAjax){colorTemperatureCursor.style.left=((T - 1000) / 9000 * 100) + '%'; unsetCie1976Ucs(); if (doAjax) ajax('/colorTemperature?T=' + T);}; var unsetColorTemperature=function (){colorTemperatureCursor.style.left='-10%';}; colorTemperature.addEventListener('click', function (ev){var T=(ev.pageX - this.offsetLeft) / colorTemperature.offsetWidth * 9000 + 1000; setColorTemperature(T, true);}); setCie1976Ucs(u_, v_, false); setDimming(L_, false);</script>";
+const char HTML_END[] PROGMEM = "</html>";
+
 ESP8266WebServer server(80);
 
 /**
@@ -40,6 +50,19 @@ struct RGB {
 } raw_;
 
 /**
+ * Color temperature (in Kelvins)
+ */
+int T_;
+
+/**
+ * Getters and setters for onboard leds
+ */
+bool getLed1 () { return !digitalRead(led1Pin_); }
+void setLed1 (bool val) { digitalWrite(led1Pin_, !val); }
+bool getLed2 () { return !digitalRead(led2Pin_); }
+void setLed2 (bool val) { digitalWrite(led2Pin_, !val); }
+
+/**
  * Get raw pwm values
  * Values are normalized in the range 0..1
  */
@@ -48,10 +71,33 @@ RGB getRaw () {
 }
 
 /**
+ * Getter for onOff
+ */
+bool getOnOff () {
+  return onOff_;
+}
+
+/**
+ * Get CIE 1976 UCS color coordinates
+ */
+Cie1976Ucs getCie1976Ucs () {
+  return luv_;
+}
+
+/**
+ * Getter for color temperature
+ */
+int getColorTemperature () {
+  return T_;
+}
+
+/**
  * Set raw pwm values
  * Values must be normalized to the range 0..1
  */
 void setRaw (RGB raw) {
+
+  if (!getOnOff()) return;
 
   // Limit values in the range 0..1
   if (raw.R < 0) raw.R = 0;
@@ -88,13 +134,6 @@ void setRaw (RGB raw) {
 }
 
 /**
- * Getter for onOff
- */
-bool getOnOff () {
-  return onOff_;
-}
-
-/**
  * Sets light on or off
  */
 void setOnOff (bool onOff) {
@@ -109,16 +148,11 @@ void setOnOff (bool onOff) {
 }
 
 /**
- * Get CIE 1976 UCS color coordinates
- */
-Cie1976Ucs getCie1976Ucs () {
-  return luv_;
-}
-
-/**
  * Set CIE 1976 UCS color coordinates
  */
 void setCie1976Ucs (Cie1976Ucs luv) {
+
+  if (!getOnOff()) return;
 
   Serial.print("Setting luv: ");
   Serial.print(luv.L); Serial.print(", ");
@@ -149,23 +183,51 @@ void setCie1976Ucs (Cie1976Ucs luv) {
   Serial.print(raw.G); Serial.print(", ");
   Serial.println(raw.B);
 
+  // Cannot be sure that current color is result of color temperature setter
+  // unset color temperature. Color temperature setter will save the color
+  // temperature after calling this function
+  T_ = -1;
+
   // Write PWMs
   setRaw(raw);
 }
 
 /**
- * Getters and setters for onboard leds
+ * Sets ligth by color temperature
  */
-bool getLed1 () { return !digitalRead(led1Pin_); }
-void setLed1 (bool val) { digitalWrite(led1Pin_, !val); }
-bool getLed2 () { return !digitalRead(led2Pin_); }
-void setLed2 (bool val) { digitalWrite(led2Pin_, !val); }
+void setColorTemperature (int T) {
+  if (!getOnOff()) return;
+  
+  // These cryptic looking formulas are a result of least RMSE fit of
+  // CIE1976UCS coordinates vs color temperature
+  float u = (8.455e-7*pow(T,2) + 0.1525*T + 270) / (T - 85.02);
+  float v = (1.043e-6*pow(T,3) + 0.1475*pow(T,2) + 312.9*T + 0.7988) / (pow(T,2) + 18.76*T - 3.092);
+  Cie1976Ucs luv = {luv_.L, u, v};
+  setCie1976Ucs(luv);
+
+  // Save color temperature
+  T_ = T;
+}
 
 /**
  * Responses with PWM, CIE1976UCS and sRGB values
  */
 void httpIndexController () {
-  server.send(200, "application/json", "Hello");
+  
+  String html = FPSTR(HTML_HEAD);
+  html += FPSTR(HTML_STYLE);
+  html += FPSTR(HTML_HEAD_END);
+  html += FPSTR(HTML_BODY);
+  html += FPSTR(HTML_JSONP);
+  html += FPSTR(HTML_SCRIPT);
+  html += FPSTR(HTML_END);
+
+  html.replace("{{onOff_}}", onOff_ ? "true" : "false");
+  html.replace("{{L_}}", String(luv_.L));
+  html.replace("{{u_}}", String(luv_.u));
+  html.replace("{{v_}}", String(luv_.v));
+  
+  server.send(200, "text/html", html);
 }
 
 /**
@@ -207,6 +269,8 @@ void httpOnboardLedsController () {
  * HTTP API for setting the light on
  */
 void httpOnController () {
+  setOnOff(true);
+  
   // JSON response
   StaticJsonBuffer<20> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
@@ -222,6 +286,8 @@ void httpOnController () {
  * HTTP API for setting the light off
  */
  void httpOffController () {
+  setOnOff(false);
+  
   // JSON response
   StaticJsonBuffer<20> jsonBuffer;
   JsonObject& json = jsonBuffer.createObject();
@@ -332,6 +398,33 @@ void httpCie1976UcsController () {
   server.send(httpStatus, "application/json", response);
 }
 
+void httpColorTemperatureController () {
+  int T = -1;
+  // Parse args
+  for (uint8_t i = 0; i < server.args(); ++i) {
+    if (server.argName(i) == "T") {
+      T = server.arg(i).toInt();
+    }
+  }
+
+  // Set color temperature
+  if (T > 0) {
+    setColorTemperature(T);
+  } else {
+    T = getColorTemperature();
+  }
+
+  // JSON response
+  StaticJsonBuffer<20> jsonBuffer;
+  JsonObject& json = jsonBuffer.createObject();
+  json["T"] = T;
+  String response;
+  json.prettyPrintTo(response);
+
+  // Send response
+  server.send(200, "application/json", response);
+}
+
 void httpNotFoundController () {
   server.send(404, "text/plain", "404");
 }
@@ -380,8 +473,7 @@ void setup(void){
   server.on("/off", httpOffController);
   server.on("/raw", httpRawController);
   server.on("/cie1976Ucs", httpCie1976UcsController);
-  //server.on("/srgb", httpSrgbController);
-
+  server.on("/colorTemperature", httpColorTemperatureController);
   // Route not found
   server.onNotFound(httpNotFoundController);
 

@@ -1,32 +1,63 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <style>
-    body { background: #333; margin: 16px; }
-    .container { max-width: 600px; margin: 0 auto; }
-    .button-group { width: 100%; height: 56px; margin-bottom: 16px; }
+    body {
+      background: #333333;
+      margin: 0;
+    }
+    .container {
+      max-width: 500px;
+      margin: 8px auto;
+    }
+    .layout-column, .layout-row {
+      box-sizing: border-box;
+      display: -webkit-flex;
+      display: -ms-flexbox;
+      display: flex;
+    }
+    .layout-row {
+      -webkit-flex-direction: row;
+      -ms-flex-direction: row;
+      flex-direction: row;
+    }
+    .layout-column {
+      -webkit-flex-direction: column;
+      -ms-flex-direction: column;
+      flex-direction: column;
+      margin: 0 8px;
+    }
+    .layout-column > *:first-child {
+      margin-bottom: 8px;
+    }
+    .flex {
+      -webkit-flex: 1;
+      -ms-flex: 1;
+      flex: 1;
+      box-sizing: border-box;
+    }
+    .button-group {
+      width: 100%;
+      height: 48px;
+      margin-bottom: 8px;
+    }
     button {
       display: block;
-      float: left;
-      width: 50%;
-      height: 56px;
+      width: 48px; height: 48px;
       color: white;
       border: none;
+      border-radius: 2px;
     }
     button:hover { cursor: pointer; }
     #on-button {
-      background-color: #1E7B1E;
-      border-top-right-radius: 2px;
-      border-bottom-right-radius: 2px;
+      background-color: hsl(120, 75%, 20%);
     }
     #off-button {
-      background-color: #CC1F00;
-      border-top-left-radius: 2px;
-      border-bottom-left-radius: 2px;
+      background-color: hsl(9, 100%, 25%);
     }
-    #on-button.active { background-color: #5BD75B; }
-    #off-button.active { background-color: #FF6347; }
+    #on-button.active { background-color: hsl(120, 75%, 50%); }
+    #off-button.active { background-color: hsl(9, 100%, 60%); }
     .img {
       width: 100%;
       border-radius: 2px;
@@ -35,60 +66,103 @@
     }
     .cursor {
       position: absolute;
-      top: 50%; left: -10px;
+      top: -10%; left: 50%;
       width: 6px; height: 6px;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       background: black;
     }
     #dimming {
-      height: 56px;
-      margin-bottom: 16px;
-      background: linear-gradient(to right, #000000 0%, #ffffff 100%);
+      width: 48px;
+      background: linear-gradient(to bottom, #000000 5%, #ffffff 95%);
     }
     #dimming-cursor {
       background: red;
     }
     #color-temperature {
-       background-repeat: repeat-y;
+       background-repeat: repeat-x;
        background-size: contain;
-       height: 56px;
-       margin-bottom: 16px;
+       width: 48px;
+    }
+    #cie1976ucs {
+      margin-bottom: 4px;
+    }
+    #cie1976ucs-zoom {
+      height: 200px;
+      background-color: #333333;
+    }
+    #cie1976ucs-zoom > img {
+      position: absolute;
+      top: 50%; bottom: auto;
+      left: 50%; right: auto;
+      transform-origin: 0% 0%;
+      transform: scale(2);
     }
   </style>
 </head>
 
 <body>
-  <div class="container">
-    <div class="button-group">
-      <button id="off-button" type="button">OFF</button>
-      <button id="on-button" type="button">ON</button>
+  <div class='container layout-row'>
+    <div class='layout-column'>
+      <div id='dimming' class='img flex'><div id='dimming-cursor' class='cursor'></diV></div>
+      <button id='off-button' type='button'>OFF</button>
     </div>
-    <div id="dimming" class="img"><div id="dimming-cursor" class="cursor"></diV></div>
-    <div id="color-temperature" class="img" style="background-image: url('https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/colorTemperatureChart_1000K_10000K.jpg');">
-      <div id="color-temperature-cursor" class="cursor"></div>
+    
+    <div class='flex layout-colum'>
+      <div id='cie1976ucs' class='img flex'>
+        <img class='img' src='https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/CIE_1976_UCS_06_063_Full.jpg'>
+        <div id='cie1976ucs-cursor' class='cursor'></div>
+      </div>
+      <div id='cie1976ucs-zoom' class='img'>
+        <img id='cie1976ucs-zoom-image' class='img' src='https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/CIE_1976_UCS_06_063_Full.jpg'>
+      </div>
     </div>
-    <div id="cie1976ucs" class="img">
-      <img class="img" src="https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/CIE_1976_UCS_06_063_Full.jpg">
-      <div id="cie1976ucs-cursor" class="cursor"></div>
+    
+    <div class='layout-column'>
+      <div id='color-temperature' class='img flex' style='background-image: url(https://raw.githubusercontent.com/jaakkopasanen/Tunable-White-LED/master/Matlab/img/cct_1000K_to_10000K_pow2_vertical.jpg);'>
+        <div id='color-temperature-cursor' class='cursor'></div>
+      </div>
+      <button id='on-button' type='button'>ON</button>
     </div>
   </div>
 </body>
 
-<script type="text/javascript">var onOff_ = true;var L_ = 75;var u_ = 0.2;var v_ = 0.5;</script>
+<script type='text/javascript'>
 
-<script type="text/javascript">
+var onOff_ = {{onOff_}};
+var L_ = {{L_}};
+var u_ = {{u_}};
+var v_ = {{v_}};
+var T_ = {{T_}};
+debug = false;
+
+/*
+var onOff_ = true;
+var L_ = 75;
+var u_ = 0.199;
+var v_ = 0.471;
+var T_ = -1;
+var debug = true;
+*/
+</script>
+
+<script type='text/javascript'>
   var onButton = document.getElementById('on-button');
   var offButton = document.getElementById('off-button');
   var dimming = document.getElementById('dimming');
   var dimmingCursor = document.getElementById('dimming-cursor');
   var cie1976Ucs = document.getElementById('cie1976ucs');
   var cie1976UcsCursor = document.getElementById('cie1976ucs-cursor');
+  var cie1976UcsZoom = document.getElementById('cie1976ucs-zoom');
+  var cie1976UcsZoomImage = document.getElementById('cie1976ucs-zoom-image');
   var colorTemperature = document.getElementById('color-temperature');
   var colorTemperatureCursor = document.getElementById('color-temperature-cursor');
+  var mode = 'color';
+  if (T_ && !L_) mode = 'temperature';
   
   var ajax = function (url) {
     console.log('AJAX:', url);
+    if (debug) return;
     var xhr = new XMLHttpRequest();
     xhr.open('GET', url, true);
     xhr.send();
@@ -125,20 +199,37 @@
   
   var setDimming = function (L, doAjax) {
     L_ = L;
-    dimmingCursor.style.left = L + '%';
-    if (doAjax) ajax('/cie1976Ucs?L=' + L + '&u=' + u_ + '&v=' + v_);
+    dimmingCursor.style.top = (L/100 * 90 + 5) + '%';
+    if (doAjax) {
+      if (mode === 'color') {
+        ajax('/cie1976Ucs?L=' + L_ + '&u=' + u_ + '&v=' + v_);
+      } else {
+        ajax('/colorTemperature?L=' + L_ + '&T=' + T_);
+      }
+    }
   };
   
   dimming.addEventListener('click', function (ev) {
-    var L = (ev.pageX - this.offsetLeft) / dimming.offsetWidth * 100;
+    var y = (ev.pageY - dimming.offsetTop) / dimming.offsetHeight;
+    y = (y - 0.05) / 0.9;
+    y = Math.min(y, 1);
+    y = Math.max(y, 0);
+    var L = y * 100;
     setDimming(L, true);
   });
   
   var setCie1976Ucs = function (u, v, doAjax) {
     u_ = u;
     v_ = v;
+    mode = 'color';
+    
     cie1976UcsCursor.style.left = (u / 0.63 * 100) + '%';
     cie1976UcsCursor.style.top = ((1 - v / 0.6) * 100) + '%';
+    
+    x = -(u / 0.63) * cie1976Ucs.offsetWidth;
+    y = -(1 - v / 0.6) * cie1976Ucs.offsetHeight;
+    cie1976UcsZoomImage.style.transform = 'scale(4) translate(' + x + 'px, ' + y + 'px)';
+    
     unsetColorTemperature();
     if (doAjax) ajax('/cie1976Ucs?L=' + L_ + '&u=' + u + '&v=' + v);
   };
@@ -149,27 +240,44 @@
   };
   
   cie1976Ucs.addEventListener('click', function (ev) {
-    var u = (ev.pageX - this.offsetLeft) / cie1976Ucs.offsetWidth * 0.63;
-    var v = (1 - (ev.pageY - this.offsetTop) / cie1976Ucs.offsetHeight) * 0.6;
+    var u = (ev.pageX - cie1976Ucs.offsetLeft) / cie1976Ucs.offsetWidth * 0.63;
+    var v = (1 - (ev.pageY - cie1976Ucs.offsetTop) / cie1976Ucs.offsetHeight) * 0.6;
     setCie1976Ucs(u, v, true);
   });
   
+  cie1976UcsZoom.addEventListener('click', function (ev) {
+    var dx = ((ev.pageX - cie1976UcsZoom.offsetLeft) / cie1976UcsZoom.offsetWidth - 0.5);
+    var dy = ((ev.pageY - cie1976UcsZoom.offsetTop) / cie1976UcsZoom.offsetHeight - 0.5);
+    var dxpx = dx * cie1976UcsZoom.offsetWidth;
+    var dypx = dy * cie1976UcsZoom.offsetHeight;
+    var du = dxpx / cie1976Ucs.offsetWidth * 0.63 / 4;
+    var dv = dypx / cie1976Ucs.offsetHeight * 0.6 / 4;
+    setCie1976Ucs(u_ + du, v_ - dv, true);
+  });
+  
   var setColorTemperature = function (T, doAjax) {
-    colorTemperatureCursor.style.left = ((T - 1000) / 9000 * 100) + '%';
+    T_ = T;
+    mode = 'temperature';
+    colorTemperatureCursor.style.top = ((1 - Math.pow(((T - 1000) / 9000),0.5)) * 100) + '%';
     unsetCie1976Ucs();
-    if (doAjax) ajax('/colorTemperature?T=' + T);
+    if (doAjax) ajax('/colorTemperature?L=' + L_ + '&T=' + T_);
   };
   
   var unsetColorTemperature = function () {
-    colorTemperatureCursor.style.left = '-10%';
+    colorTemperatureCursor.style.top = '-10%';
   };
   
   colorTemperature.addEventListener('click', function (ev) {
-    var T = (ev.pageX - this.offsetLeft) / colorTemperature.offsetWidth * 9000 + 1000;
+    var y = (ev.pageY - colorTemperature.offsetTop) / colorTemperature.offsetHeight;
+    var T = Math.pow((1-y), 2) * 9000 + 1000;
     setColorTemperature(T, true);
   });
   
-  setCie1976Ucs(u_, v_, false);
-  setDimming(L_, false);
+  window.onload = function () {
+    cie1976UcsZoom.style.height = cie1976Ucs.offsetWidth + 'px';
+    setCie1976Ucs(u_, v_, false);
+    setDimming(L_, false);
+  };
+
 </script>
 </html>

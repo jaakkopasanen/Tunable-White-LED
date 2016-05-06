@@ -213,11 +213,11 @@ void setColorTemperature (float L, int T) {
 void httpIndexController () {
   
   String html = FPSTR(HTML_INDEX);
-  html.replace("{{onOff_}}", onOff_ ? "true" : "false");
-  html.replace("{{L_}}", String(luv_.L));
-  html.replace("{{u_}}", String(luv_.u));
-  html.replace("{{v_}}", String(luv_.v));
-  html.replace("{{T_}}", String(T_));
+  html.replace("{onOff_}", onOff_ ? "true" : "false");
+  html.replace("{L_}", String(luv_.L));
+  html.replace("{u_}", String(luv_.u));
+  html.replace("{v_}", String(luv_.v));
+  html.replace("{T_}", String(T_));
   
   server.send(200, "text/html", html);
 }

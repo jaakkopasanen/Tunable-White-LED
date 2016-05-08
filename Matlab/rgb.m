@@ -4,9 +4,9 @@ tic
 L = 380:5:780;
 figure;
 % LEDs
-%red = gaussmf(L, [20/2.355 630])*1.7; redL = 160;
-%green = gaussmf(L, [20/2.355 525]); greenL = 320;
-%blue = gaussmf(L, [20/2.355 465])*2; blueL = 240;
+red = gaussmf(L, [20/2.355 630]); redL = 160;
+green = gaussmf(L, [20/2.355 525]); greenL = 320;
+blue = gaussmf(L, [20/2.355 465]); blueL = 240;
 
 % Parameters
 resolution = 0.02;

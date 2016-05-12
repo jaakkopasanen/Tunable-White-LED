@@ -70,11 +70,11 @@ Cie1976Ucs blueUv_ = {100, 0.1679, 0.1153};
 
 // Mixing fit coefficients
 float redToGreenFit_[] = {-6747.5, 6753.9, -2239.3, 6745.6};
-float redToBlueFit_[] = {-3754.6, 3755.3, 1914.6, 3754.6};
+float redToBlueFit_[] = {-8893.8, 8894.3, -7336.2, 8893.3};
 float greenToBlueFit_[] = {-6052.2, 6052.1, -4454.7, 6051.8};
-float greenToRedFit_[] = {-2127.6, 2124.3, 5899.1, 2126.2};
+float greenToRedFit_[] = {-3754.6, 3755.3, 1914.6, 3754.6};
 float blueToRedFit_[] = {-1668.9, 1662.6, 7782.9, 1665.5};
-float blueToGreenFit_[] = {-8893.8, 8894.3, -7336.2, 8893.3};
+float blueToGreenFit_[] = {-2127.6, 2124.3, 5899.1, 2126.2};
 
 
 
@@ -86,12 +86,13 @@ float blueToGreenFit_[] = {-8893.8, 8894.3, -7336.2, 8893.3};
  * Finds intersection point of two lines in CIE 1976 UCS diagram
  */
  Cie1976Ucs findIntersection (const Line A, const Line B) {
-  const float u[4] = {A.p1.u, A.p2.u, B.p1.u, B.p2.v};
+  const float u[4] = {A.p1.u, A.p2.u, B.p1.u, B.p2.u};
   const float v[4] = {A.p1.v, A.p2.v, B.p1.v, B.p2.v};
   const float denom = (u[0]-u[1]) * (v[2]-v[3]) - (v[0]-v[1]) * (u[2]-u[3]);
   const float pu = ( (u[0]*v[1]-v[0]*u[1]) * (u[2]-u[3]) - (u[0]-u[1]) * (u[2]*v[3]-v[2]*u[3]) ) / denom;
   const float pv = ( (u[0]*v[1]-v[0]*u[1]) * (v[2]-v[3]) - (v[0]-v[1]) * (u[2]*v[3]-v[2]*u[3]) ) / denom;
-  return {pu, pv};
+  Cie1976Ucs intersection = {100, pu, pv};
+  return intersection;
  }
 
 /**
@@ -105,33 +106,113 @@ float blueToGreenFit_[] = {-8893.8, 8894.3, -7336.2, 8893.3};
  * Evaluate rational function with nominator degree of 1 and denominator degree of 2
  */
  float evalRat12 (const float x, const float fit[4]) {
-  float ( fit[0]*x + fit[1] ) / ( pow(x, 2) + fit[2]*x + fit[3] );
+  float val = ( fit[0]*x + fit[1] ) / ( pow(x, 2) + fit[2]*x + fit[3] );
+  return val;
  }
 
 /**
  * Find coefficient for a LED which produces color given as target
  */
 float findCoefficient (const Cie1976Ucs uvs[3], const Cie1976Ucs target, const float rightHandFit[4], const float leftHandFit[4]) {
+
+  Serial.print("uvs: ");
+  Serial.print(uvs[0].u);
+  Serial.print(", ");
+  Serial.print(uvs[0].v);
+  Serial.print(", ");
+  Serial.print(uvs[1].u);
+  Serial.print(", ");
+  Serial.print(uvs[1].v);
+  Serial.print(", ");
+  Serial.print(uvs[2].u);
+  Serial.print(", ");
+  Serial.println(uvs[2].v);
+
+  Serial.print("target: ");
+  Serial.print(target.u);
+  Serial.print(", ");
+  Serial.println(target.v);
+
+  Serial.print("rightHandFit: ");
+  Serial.print(rightHandFit[0]);
+  Serial.print(", ");
+  Serial.print(rightHandFit[1]);
+  Serial.print(", ");
+  Serial.print(rightHandFit[2]);
+  Serial.print(", ");
+  Serial.println(rightHandFit[3]);
+
+  Serial.print("leftHandFit: ");
+  Serial.print(leftHandFit[0]);
+  Serial.print(", ");
+  Serial.print(leftHandFit[1]);
+  Serial.print(", ");
+  Serial.print(leftHandFit[2]);
+  Serial.print(", ");
+  Serial.println(leftHandFit[3]);
+
   // Find intersection point on the opposite edge
   const Line sourceToTarget = {uvs[0], target};
+  Serial.print("sourceToTarget: ");
+  Serial.print(sourceToTarget.p1.u);
+  Serial.print(", ");
+  Serial.print(sourceToTarget.p1.v);
+  Serial.print(", ");
+  Serial.print(sourceToTarget.p2.u);
+  Serial.print(", ");
+  Serial.println(sourceToTarget.p2.v);
   const Line oppositeEdge = {uvs[1], uvs[2]};
+  Serial.print("oppositeEdge: ");
+  Serial.print(oppositeEdge.p1.u);
+  Serial.print(", ");
+  Serial.print(oppositeEdge.p1.v);
+  Serial.print(", ");
+  Serial.print(oppositeEdge.p2.u);
+  Serial.print(", ");
+  Serial.println(oppositeEdge.p2.v);
   const Cie1976Ucs p_intersection = findIntersection(sourceToTarget, oppositeEdge);
+  Serial.print("p_intersection: ");
+  Serial.print(p_intersection.u);
+  Serial.print(", ");
+  Serial.println(p_intersection.v);
 
   // Relative distance from source to target
   const float d_opposite = dist(uvs[0], p_intersection);
+  Serial.print("d_opposite: ");
+  Serial.println(d_opposite);
   const float d_target = dist(uvs[0], target) / d_opposite;
+  Serial.print("d_target: ");
+  Serial.println(d_target);
 
   // Starting point
   float level = 1 - d_target;
-
+  Serial.print("level: ");
+  Serial.println(level);
+  
   // Annealing parameters
   // Fit linearities by difference from linear function value at the middle
-  const float rightHandLinearity = 1 - 1.2 * abs(evalRat12(0.5, rightHandFit) - 0.5);
-  const float leftHandLinearity = 1 - 1.2 * abs(evalRat12(0.5, leftHandFit) - 0.5);
+  float rightHandFitMid = evalRat12(0.5, rightHandFit) - 0.5;
+  Serial.print("rightHandFitMid: ");
+  Serial.println(rightHandFitMid);
+  if (rightHandFitMid < 0) rightHandFitMid = -rightHandFitMid;
+  const float rightHandLinearity = 1.0 - 1.2 * rightHandFitMid;
+  Serial.print("rightHandLinearity: ");
+  Serial.println(rightHandLinearity);
+  float leftHandFitMid = evalRat12(0.5, leftHandFit) - 0.5;
+  Serial.print("leftHandFitMid: ");
+  Serial.println(leftHandFitMid);
+  if (leftHandFitMid < 0) leftHandFitMid = -leftHandFitMid;
+  const float leftHandLinearity = 1.0 - 1.2 * leftHandFitMid;
+  Serial.print("leftHandLinearity: ");
+  Serial.println(leftHandLinearity);
   // How close the target is to the right hand side. 1 when on the right hand side, 0 when on the left hand side 
-  const float fitScaling = 1 - dist(uvs[1], p_intersection) / dist(uvs[1], uvs[2]);
+  const float fitScaling = 1.0 - dist(uvs[1], p_intersection) / dist(uvs[1], uvs[2]);
+  Serial.print("fitScaling: ");
+  Serial.println(fitScaling);
   // Annealing speed is the weighed average of right hand side and left hand side linearities
   const float annealing = rightHandLinearity * fitScaling + leftHandLinearity * (1 - fitScaling);
+  Serial.print("annealing: ");
+  Serial.println(annealing);
 
   // Current color error
   float err = 1;
@@ -147,7 +228,7 @@ float findCoefficient (const Cie1976Ucs uvs[3], const Cie1976Ucs target, const f
 
     // Point on the left hand side
     d =  evalRat12(level, leftHandFit);
-    float u_left = uvs[0].u + (uvs[1].u - uvs[0].u) * d;
+    float u_left = uvs[0].u + (uvs[2].u - uvs[0].u) * d;
     float v_left = uvs[0].v + (uvs[2].v - uvs[0].v) * d;
     Cie1976Ucs p_left = {u_left, v_left};
 
@@ -260,9 +341,9 @@ void setRaw (RGB raw) {
   int pwmB = static_cast<int>(raw.B * pwmRange_ + 0.5);
 
   // Write PWMs
-  analogWrite(redPin_, pwmR);
-  analogWrite(greenPin_, pwmG);
-  analogWrite(bluePin_, pwmB);
+  //analogWrite(redPin_, pwmR);
+  //analogWrite(greenPin_, pwmG);
+  //analogWrite(bluePin_, pwmB);
 
   // Save values
   raw_.R = static_cast<float>(pwmR) / pwmRange_;
@@ -308,19 +389,25 @@ void setCie1976Ucs (Cie1976Ucs luv) {
   uvs[1] = greenUv_;
   uvs[2] = blueUv_;
   raw.R = findCoefficient(uvs, luv, redToGreenFit_, redToBlueFit_);
+  Serial.print("raw.R: ");
+  Serial.println(raw.R);
   
   // Coefficient for green
   uvs[0] = greenUv_;
   uvs[1] = blueUv_;
   uvs[2] = redUv_;
   raw.G = findCoefficient(uvs, luv, greenToBlueFit_, greenToRedFit_);
+  Serial.print("raw.G: ");
+  Serial.println(raw.G);
   
   // Coefficient for blue
   uvs[0] = blueUv_;
   uvs[1] = redUv_;
   uvs[2] = greenUv_;
   raw.B = findCoefficient(uvs, luv, blueToRedFit_, blueToGreenFit_);
-
+  Serial.print("raw.B: ");
+  Serial.println(raw.B);
+/*
   // Luma produced by the current raw values
   float Y = (raw.R * redLum_ + raw.G * greenLum_ + raw.B * blueLum_) / maxLum_;
 
@@ -346,7 +433,7 @@ void setCie1976Ucs (Cie1976Ucs luv) {
     raw.G = raw.G * (1 / maxRaw);
     raw.B = raw.B * (1 / maxRaw);
   }
-
+*/
   // Write PWMs
   setRaw(raw);
 
@@ -430,7 +517,7 @@ void httpOnboardLedsController () {
 
   // JSON response
   char response[40];
-  sprintf(response, "{\"led1\":%d,\"led2\":%d}", led1, led2);
+  sprintf(response, "{\n  \"led1\": %d,\n  \"led2\":%d\n}", led1, led2);
 
   server.send(200, "application/json", response);
 }
@@ -443,7 +530,7 @@ void httpOnController () {
   
   // JSON response
   char response[40];
-  sprintf(response, "{\"onOff\":%s}", "true");
+  sprintf(response, "{\n  \"onOff\": %s}", "true");
 
   // Send response
   server.send(200, "application/json", response);
@@ -457,7 +544,7 @@ void httpOnController () {
   
   // JSON response
   char response[40];
-  sprintf(response, "{\"onOff\":%s}", "false");
+  sprintf(response, "{\n  \"onOff\": %s\n}", "false");
 
   // Send response
   server.send(200, "application/json", response);
@@ -497,7 +584,10 @@ void httpRawController () {
 
   // JSON response
   char response[60];
-  sprintf(response, "{\"R\":%f.4,\"G\":%f.4,\"B\":%f.4}", R, G, B);
+  char strR[10]; dtostrf(R, 6, 4, strR);
+  char strG[10]; dtostrf(G, 6, 4, strG);
+  char strB[10]; dtostrf(B, 6, 4, strB);
+  sprintf(response, "{\n  \"R\": %s,\n  \"G\": %s,\n  \"B\": %s\n}", strR, strG, strB);
 
   // Send response
   server.send(httpStatus, "application/json", response);
@@ -534,7 +624,10 @@ void httpCie1976UcsController () {
 
   // JSON response
   char response[60];
-  sprintf(response, "{\"L\":%f.4,\"u\":%f.4,\"v\":%f.4}", L, u, v);
+  char strL[10]; dtostrf(L, 6, 4, strL);
+  char strU[10]; dtostrf(u, 6, 4, strU);
+  char strV[10]; dtostrf(v, 6, 4, strV);
+  sprintf(response, "{\n  \"L\": %s,\n  \"u\": %s,\n  \"v\": %s\n}", strL, strU, strV);
 
   // Send response
   server.send(200, "application/json", response);
@@ -568,7 +661,8 @@ void httpColorTemperatureController () {
 
   // JSON response
   char response[60];
-  sprintf(response, "{\"L\":%f.4,\"T\":%d}", L, T);
+  char strL[10]; dtostrf(L, 6, 4, strL);
+  sprintf(response, "{\n  \"L\": %s,\n  \"T\": %d}", L, T);
 
   // Send response
   server.send(200, "application/json", response);
@@ -611,6 +705,8 @@ void setup(void){
   WiFiManager wiFiManager;
   //wiFiManager.resetSettings();
   wiFiManager.autoConnect("esp8277", "esp8266password");
+
+  Serial.begin(115200);
 
   // Set onboard leds off as a sign for STA mode
   setLed1(false);

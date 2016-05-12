@@ -1,5 +1,5 @@
-function [fitresult, gof] = createFits(c, d_rg, d_rb, d_gb, d_gr, d_br, d_bg, doPlots)
-%CREATEFITS(C,D_RG,D_RB,D_GB,D_GR,D_BR,D_BG)
+function [fitresult, gof] = createRgb2Fits(c, d_rg, d_rb, d_gb, d_gr, d_br, d_bg, doPlots)
+%CREATERGB2FITS(C,D_RG,D_RB,D_GB,D_GR,D_BR,D_BG)
 %  Create fits.
 %
 %  Data for 'redToGreen' fit:

@@ -11,6 +11,13 @@ function [ level, err, rightToLeft ] = findLevel( sourceUvs, target, rightHandFi
 %   err         := Error as in distance from the intersection to target
 %   rightToLeft := Line from right side point to left side point
 
+%sourceUvs
+
+%target
+
+%rightHandFit
+
+%leftHandFit
 
 % Find intersection point on opposite edge
 sourceToTarget = [

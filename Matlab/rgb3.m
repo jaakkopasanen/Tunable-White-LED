@@ -7,9 +7,22 @@ L = 380:5:780;
 
 % LEDs
 % Parameters for these shold come from rgbCalibration.m
-red = gaussmf(L, [10/2.355 (627+rand()*5)])*(1+rand()*0.5);
-green = gaussmf(L, [10/2.355 (525+rand()*5)])*(1+rand()*0.5);
-blue = gaussmf(L, [10/2.355 (465+rand()*5)])*(1+rand()*0.5);
+%red = gaussmf(L, [10/2.355 (627+rand()*5)])*(1+rand()*0.5);
+%green = gaussmf(L, [10/2.355 (525+rand()*5)])*(1+rand()*0.5);
+%blue = gaussmf(L, [10/2.355 (465+rand()*5)])*(1+rand()*0.5);
+
+red = gaussmf(L, [10/2.355 630]); redL = 160;
+green = gaussmf(L, [10/2.355 525]); greenL = 320;
+blue = gaussmf(L, [10/2.355 465]); blueL = 240;
+powers = [
+    redL / spdToLER(red)
+    greenL / spdToLER(green)
+    blueL / spdToLER(blue)
+];
+powers = powers * (1 / max(powers));
+red = red * powers(1);
+green = green * powers(2);
+blue = blue * powers(3);
 
 % Led u'v' coordinates
 sourceUvs = [
@@ -141,7 +154,7 @@ plot(sourceUvs(:,1), sourceUvs(:,2), 'k');
 err = [];
 testPoints = [0.1934 0.4985];
 
-for i = 1:100
+for i = 1:25
     % Test point
     target = [rand*0.55 rand*0.6];
     %target = testPoints(i,:);
@@ -152,13 +165,16 @@ for i = 1:100
     end
     
     % Find mixing coefficients
-    r = findLevel2(target, sourceUvs(1,:), sourceUvs(2,:), sourceUvs(3,:), rgFit, rbFit);
-    g = findLevel2(target, sourceUvs(2,:), sourceUvs(3,:), sourceUvs(1,:), gbFit, grFit);
-    b = findLevel2(target, sourceUvs(3,:), sourceUvs(1,:), sourceUvs(2,:), brFit, bgFit);
+    %disp('-- RED --');
+    r = findLevel2(target, sourceUvs(1,:), sourceUvs(2,:), sourceUvs(3,:), rgFit, gbFit);
+    %disp('-- GREEN --');
+    g = findLevel2(target, sourceUvs(2,:), sourceUvs(3,:), sourceUvs(1,:), gbFit, brFit);
+    %disp('-- BLUE --');
+    b = findLevel2(target, sourceUvs(3,:), sourceUvs(1,:), sourceUvs(2,:), brFit, rgFit);
     
     rgb = [r g b];
     rgb = rgb .* (1/max(rgb));
-    %uv_rgb =  [target rgb]
+    uv_rgb =  [target rgb]
     
     % Simulate color
     uv = xyzToCie1976UcsUv(spdToXyz(mixSpd([red;green;blue], [r;g;b])));
@@ -183,7 +199,27 @@ luminousFluxes = [
 ];
 luminousFluxes = luminousFluxes * (1 / max(luminousFluxes));
 %}
-%{
+
+disp([
+    '----------------------------'
+    'Red-to-blue VS Green-to-blue'
+    '----------------------------'
+]);
+disp([rbFit; gbFit]);
+disp([
+    '----------------------------'    
+    'Green-to-red VS Blue-to-red '
+    '----------------------------'
+]);
+disp([grFit; brFit]);
+disp([
+    '---------------------------- '
+    'Blue-to-green VS Red-to-green'
+    '---------------------------- '
+]);
+disp([bgFit; rgFit]);
+
+%
 disp([
     '----------------------------'
     'Relative luminous fluxes    '
@@ -214,21 +250,21 @@ disp([
     '----------------------------'
     'LED fit data                '
     '----------------------------'
-    '       p1*x + p2            '
-    'y = ---------------         '
-    '    x^2 + q1*x + q2         '
+    '     p1*x + p2              '
+    'y = -----------             '
+    '       x + q1               '
     'Rows                        '
     '    red to green            '
     '    green to blue           '
     '    blue to red             '
     'Columns                     '
-    '    p1  p2  q1  q2          '
+    '    p1  p2  q1              '
     '----------------------------'
 ]);
 disp([
-    coeffvalues(redToGreenFit)
-    coeffvalues(greenToBlueFit)
-    coeffvalues(blueToRedFit)
+    rgFit
+    gbFit
+    brFit
 ]);
 %}
 %toc

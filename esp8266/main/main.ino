@@ -23,16 +23,10 @@ const char HTML_INDEX[] PROGMEM = "<!DOCTYPE html><html><head><meta name='viewpo
 ESP8266WebServer server(80);
 
 // Data structure for CIE 1976 UCS color coordinates
-struct Cie1976Ucs {
+struct Luv {
   float L;
   float u;
   float v;
-};
-
-// Line in CIE 1976 UCS diagram
-struct Line {
-  Cie1976Ucs p1;
-  Cie1976Ucs p2;
 };
 
 // Data structure for RGB color
@@ -49,7 +43,7 @@ bool onOff_ = false;
 RGB raw_;
 
 // CIE 1976 UCS color coordinates
-Cie1976Ucs luv_;
+Luv luv_;
 
 // Correlated color temperature (in Kelvins)
 int T_;
@@ -64,17 +58,14 @@ float blueLum_ = 0.75;
 float maxLum_ = redLum_ + greenLum_ + blueLum_;
 
 // LED u', v' coordinates
-Cie1976Ucs redUv_ = {100, 0.5535, 0.5170};
-Cie1976Ucs greenUv_ = {100, 0.0373, 0.5856};
-Cie1976Ucs blueUv_ = {100, 0.1679, 0.1153};
+Luv redUv_ = {100, 0.5535, 0.5170};
+Luv greenUv_ = {100, 0.0373, 0.5856};
+Luv blueUv_ = {100, 0.1679, 0.1153};
 
 // Mixing fit coefficients
-float redToGreenFit_[] = {-6747.5, 6753.9, -2239.3, 6745.6};
-float redToBlueFit_[] = {-8893.8, 8894.3, -7336.2, 8893.3};
-float greenToBlueFit_[] = {-6052.2, 6052.1, -4454.7, 6051.8};
-float greenToRedFit_[] = {-3754.6, 3755.3, 1914.6, 3754.6};
-float blueToRedFit_[] = {-1668.9, 1662.6, 7782.9, 1665.5};
-float blueToGreenFit_[] = {-2127.6, 2124.3, 5899.1, 2126.2};
+float redToGreenFit_[] = {2.9658, 0.0, 1.9658};
+float greenToBlueFit_[] = {1.3587, 0.0, 0.3587};
+float blueToRedFit_[] = {-0.2121, 0.2121, 0.2121};
 
 
 
@@ -83,196 +74,39 @@ float blueToGreenFit_[] = {-2127.6, 2124.3, 5899.1, 2126.2};
  */
 
 /**
- * Finds intersection point of two lines in CIE 1976 UCS diagram
+ * Find coefficient for a LED
  */
- Cie1976Ucs findIntersection (const Line A, const Line B) {
-  const float u[4] = {A.p1.u, A.p2.u, B.p1.u, B.p2.u};
-  const float v[4] = {A.p1.v, A.p2.v, B.p1.v, B.p2.v};
-  const float denom = (u[0]-u[1]) * (v[2]-v[3]) - (v[0]-v[1]) * (u[2]-u[3]);
-  const float pu = ( (u[0]*v[1]-v[0]*u[1]) * (u[2]-u[3]) - (u[0]-u[1]) * (u[2]*v[3]-v[2]*u[3]) ) / denom;
-  const float pv = ( (u[0]*v[1]-v[0]*u[1]) * (v[2]-v[3]) - (v[0]-v[1]) * (u[2]*v[3]-v[2]*u[3]) ) / denom;
-  Cie1976Ucs intersection = {100, pu, pv};
-  return intersection;
- }
+float findCoefficient (const Luv PT, const Luv P0, const Luv P1, const Luv P2, const float rightHandFit[3], const float leftHandFit[3]) {
 
-/**
- * Distance between two CIE 1976 UCS points
- */
- float dist (const Cie1976Ucs p1, const Cie1976Ucs p2) {
-  return sqrt(pow(p1.u - p2.u, 2) + pow(p1.v - p2.v, 2));
- }
+  double PTu = PT.u;
+  double PTv = PT.v;
+  double P0u = P0.u;
+  double P0v = P0.v;
+  double P1u = P1.u;
+  double P1v = P1.v;
+  double P2u = P2.u;
+  double P2v = P2.v;
+  double Rp1 = rightHandFit[0];
+  double Rp2 = rightHandFit[1];
+  double Rq1 = rightHandFit[2];
+  double Lp1 = leftHandFit[0];
+  double Lp2 = leftHandFit[1];
+  double Lq1 = leftHandFit[2];
 
-/**
- * Evaluate rational function with nominator degree of 1 and denominator degree of 2
- */
- float evalRat12 (const float x, const float fit[4]) {
-  float val = ( fit[0]*x + fit[1] ) / ( pow(x, 2) + fit[2]*x + fit[3] );
-  return val;
- }
-
-/**
- * Find coefficient for a LED which produces color given as target
- */
-float findCoefficient (const Cie1976Ucs uvs[3], const Cie1976Ucs target, const float rightHandFit[4], const float leftHandFit[4]) {
-
-  Serial.print("uvs: ");
-  Serial.print(uvs[0].u);
-  Serial.print(", ");
-  Serial.print(uvs[0].v);
-  Serial.print(", ");
-  Serial.print(uvs[1].u);
-  Serial.print(", ");
-  Serial.print(uvs[1].v);
-  Serial.print(", ");
-  Serial.print(uvs[2].u);
-  Serial.print(", ");
-  Serial.println(uvs[2].v);
-
-  Serial.print("target: ");
-  Serial.print(target.u);
-  Serial.print(", ");
-  Serial.println(target.v);
-
-  Serial.print("rightHandFit: ");
-  Serial.print(rightHandFit[0]);
-  Serial.print(", ");
-  Serial.print(rightHandFit[1]);
-  Serial.print(", ");
-  Serial.print(rightHandFit[2]);
-  Serial.print(", ");
-  Serial.println(rightHandFit[3]);
-
-  Serial.print("leftHandFit: ");
-  Serial.print(leftHandFit[0]);
-  Serial.print(", ");
-  Serial.print(leftHandFit[1]);
-  Serial.print(", ");
-  Serial.print(leftHandFit[2]);
-  Serial.print(", ");
-  Serial.println(leftHandFit[3]);
-
-  // Find intersection point on the opposite edge
-  const Line sourceToTarget = {uvs[0], target};
-  Serial.print("sourceToTarget: ");
-  Serial.print(sourceToTarget.p1.u);
-  Serial.print(", ");
-  Serial.print(sourceToTarget.p1.v);
-  Serial.print(", ");
-  Serial.print(sourceToTarget.p2.u);
-  Serial.print(", ");
-  Serial.println(sourceToTarget.p2.v);
-  const Line oppositeEdge = {uvs[1], uvs[2]};
-  Serial.print("oppositeEdge: ");
-  Serial.print(oppositeEdge.p1.u);
-  Serial.print(", ");
-  Serial.print(oppositeEdge.p1.v);
-  Serial.print(", ");
-  Serial.print(oppositeEdge.p2.u);
-  Serial.print(", ");
-  Serial.println(oppositeEdge.p2.v);
-  const Cie1976Ucs p_intersection = findIntersection(sourceToTarget, oppositeEdge);
-  Serial.print("p_intersection: ");
-  Serial.print(p_intersection.u);
-  Serial.print(", ");
-  Serial.println(p_intersection.v);
-
-  // Relative distance from source to target
-  const float d_opposite = dist(uvs[0], p_intersection);
-  Serial.print("d_opposite: ");
-  Serial.println(d_opposite);
-  const float d_target = dist(uvs[0], target) / d_opposite;
-  Serial.print("d_target: ");
-  Serial.println(d_target);
-
-  // Starting point
-  float level = 1 - d_target;
-  Serial.print("level: ");
-  Serial.println(level);
-  
-  // Annealing parameters
-  // Fit linearities by difference from linear function value at the middle
-  float rightHandFitMid = evalRat12(0.5, rightHandFit) - 0.5;
-  Serial.print("rightHandFitMid: ");
-  Serial.println(rightHandFitMid);
-  if (rightHandFitMid < 0) rightHandFitMid = -rightHandFitMid;
-  const float rightHandLinearity = 1.0 - 1.2 * rightHandFitMid;
-  Serial.print("rightHandLinearity: ");
-  Serial.println(rightHandLinearity);
-  float leftHandFitMid = evalRat12(0.5, leftHandFit) - 0.5;
-  Serial.print("leftHandFitMid: ");
-  Serial.println(leftHandFitMid);
-  if (leftHandFitMid < 0) leftHandFitMid = -leftHandFitMid;
-  const float leftHandLinearity = 1.0 - 1.2 * leftHandFitMid;
-  Serial.print("leftHandLinearity: ");
-  Serial.println(leftHandLinearity);
-  // How close the target is to the right hand side. 1 when on the right hand side, 0 when on the left hand side 
-  const float fitScaling = 1.0 - dist(uvs[1], p_intersection) / dist(uvs[1], uvs[2]);
-  Serial.print("fitScaling: ");
-  Serial.println(fitScaling);
-  // Annealing speed is the weighed average of right hand side and left hand side linearities
-  const float annealing = rightHandLinearity * fitScaling + leftHandLinearity * (1 - fitScaling);
-  Serial.print("annealing: ");
-  Serial.println(annealing);
-
-  // Current color error
-  float err = 1;
-  int iterations = 0;
-  int maxIterations = 20;
-  const float maxErr = 0.001;
-  while (err > maxErr && iterations < maxIterations) {
-    // Point on the right hand side
-    float d =  evalRat12(level, rightHandFit);
-    float u_right = uvs[0].u + (uvs[1].u - uvs[0].u) * d;
-    float v_right = uvs[0].v + (uvs[1].v - uvs[0].v) * d;
-    Cie1976Ucs p_right = {u_right, v_right};
-
-    // Point on the left hand side
-    d =  evalRat12(level, leftHandFit);
-    float u_left = uvs[0].u + (uvs[2].u - uvs[0].u) * d;
-    float v_left = uvs[0].v + (uvs[2].v - uvs[0].v) * d;
-    Cie1976Ucs p_left = {u_left, v_left};
-
-    // Line from right side point to left side point
-    Line rToL = {p_right, p_left};
-
-    // Intersection between side-to-side line and source-to-target
-    Cie1976Ucs p_intersection = findIntersection(rToL, sourceToTarget);
-
-    // Points behind source are not allowed and are limited to source
-    if (
-      ((target.u > uvs[0].u) != (p_intersection.u > uvs[0].u)) ||
-      ((target.v > uvs[0].v) != (p_intersection.v > uvs[0].v))
-    ) {
-      p_intersection.u = uvs[0].u;
-      p_intersection.v = uvs[0].v;
-    }
-
-    // Relative source-to-intersection distance
-    d = dist(uvs[0], p_intersection) / d_opposite;
-
-    // Error is intersection-to-target distance
-    err = dist(p_intersection, target);
-
-    // New guess for the level
-    if (err > maxErr) {
-      
-      // Coefficient based on the source-to-intersection distance
-      float c = (1 - d_target) / (1 - d);
-      
-      // Scale coefficient with annealing speed
-      c = 1 - (1 - c) * annealing;
-
-      // Scale level
-      level = level * c;
-      
-      // Limit between 0..1
-      if (level < 0) level = 0;
-      if (level > 1) level = 1;
-    }
-
-    ++iterations;
+  double dR;
+  if (Lp1 < 0) {
+    dR = (sqrt((P0u*P0u)*(P1v*P1v)+(P1u*P1u)*(P0v*P0v)+(P0u*P0u)*(PTv*PTv)+(P0v*P0v)*(PTu*PTu)+(P1u*P1u)*(PTv*PTv)+(P1v*P1v)*(PTu*PTu)-Lp1*(P0u*P0u)*(P1v*P1v)*2.0-Lp1*(P1u*P1u)*(P0v*P0v)*2.0-Lp2*(P0u*P0u)*(P1v*P1v)*2.0-Lp2*(P1u*P1u)*(P0v*P0v)*2.0+Lq1*(P0u*P0u)*(P1v*P1v)*2.0+Lq1*(P1u*P1u)*(P0v*P0v)*2.0-Lp1*(P0u*P0u)*(PTv*PTv)*2.0-Lp1*(P0v*P0v)*(PTu*PTu)*2.0-Lp2*(P0u*P0u)*(PTv*PTv)*4.0-Lp2*(P0v*P0v)*(PTu*PTu)*4.0+Lq1*(P0u*P0u)*(PTv*PTv)*2.0+Lq1*(P0v*P0v)*(PTu*PTu)*2.0+Lq1*(P1u*P1u)*(PTv*PTv)*2.0+Lq1*(P1v*P1v)*(PTu*PTu)*2.0+(Lp1*Lp1)*(P0u*P0u)*(P1v*P1v)+(Lp1*Lp1)*(P1u*P1u)*(P0v*P0v)+(Lp2*Lp2)*(P0u*P0u)*(P1v*P1v)+(Lp2*Lp2)*(P1u*P1u)*(P0v*P0v)+(Lp1*Lp1)*(P1u*P1u)*(P2v*P2v)+(Lp1*Lp1)*(P2u*P2u)*(P1v*P1v)+(Lp2*Lp2)*(P0u*P0u)*(P2v*P2v)+(Lp2*Lp2)*(P2u*P2u)*(P0v*P0v)+(Lp2*Lp2)*(P1u*P1u)*(P2v*P2v)+(Lp2*Lp2)*(P2u*P2u)*(P1v*P1v)+(Lq1*Lq1)*(P0u*P0u)*(P1v*P1v)+(Lq1*Lq1)*(P1u*P1u)*(P0v*P0v)+(Lp1*Lp1)*(P0u*P0u)*(PTv*PTv)+(Lp1*Lp1)*(P0v*P0v)*(PTu*PTu)+(Lp1*Lp1)*(P2u*P2u)*(PTv*PTv)+(Lp1*Lp1)*(P2v*P2v)*(PTu*PTu)+(Lq1*Lq1)*(P0u*P0u)*(PTv*PTv)+(Lq1*Lq1)*(P0v*P0v)*(PTu*PTu)+(Lq1*Lq1)*(P1u*P1u)*(PTv*PTv)+(Lq1*Lq1)*(P1v*P1v)*(PTu*PTu)-P0u*P1u*(PTv*PTv)*2.0-P0u*(P1v*P1v)*PTu*2.0-P1u*(P0v*P0v)*PTu*2.0-P0v*P1v*(PTu*PTu)*2.0-(P0u*P0u)*P1v*PTv*2.0-(P1u*P1u)*P0v*PTv*2.0+Lp1*Lp2*(P0u*P0u)*(P1v*P1v)*2.0+Lp1*Lp2*(P1u*P1u)*(P0v*P0v)*2.0+Lp1*Lp2*(P1u*P1u)*(P2v*P2v)*2.0+Lp1*Lp2*(P2u*P2u)*(P1v*P1v)*2.0-Lp1*Lq1*(P0u*P0u)*(P1v*P1v)*2.0-Lp1*Lq1*(P1u*P1u)*(P0v*P0v)*2.0-Lp2*Lq1*(P0u*P0u)*(P1v*P1v)*2.0-Lp2*Lq1*(P1u*P1u)*(P0v*P0v)*2.0+Lp1*Lq1*(P0u*P0u)*(PTv*PTv)*2.0+Lp1*Lq1*(P0v*P0v)*(PTu*PTu)*2.0-(Lp1*Lp1)*P0u*P2u*(P1v*P1v)*2.0-(Lp2*Lp2)*P0u*P1u*(P2v*P2v)*2.0-(Lp2*Lp2)*P0u*P2u*(P1v*P1v)*2.0-(Lp2*Lp2)*P1u*P2u*(P0v*P0v)*2.0-(Lp1*Lp1)*(P1u*P1u)*P0v*P2v*2.0-(Lp2*Lp2)*(P0u*P0u)*P1v*P2v*2.0-(Lp2*Lp2)*(P1u*P1u)*P0v*P2v*2.0-(Lp2*Lp2)*(P2u*P2u)*P0v*P1v*2.0-(Lp1*Lp1)*P1u*(P0v*P0v)*PTu*2.0-(Lp1*Lp1)*P0u*P2u*(PTv*PTv)*2.0-(Lp1*Lp1)*P1u*(P2v*P2v)*PTu*2.0-(Lp1*Lp1)*(P0u*P0u)*P1v*PTv*2.0-(Lp1*Lp1)*P0v*P2v*(PTu*PTu)*2.0-(Lp1*Lp1)*(P2u*P2u)*P1v*PTv*2.0-(Lq1*Lq1)*P0u*P1u*(PTv*PTv)*2.0-(Lq1*Lq1)*P0u*(P1v*P1v)*PTu*2.0-(Lq1*Lq1)*P1u*(P0v*P0v)*PTu*2.0-(Lq1*Lq1)*P0v*P1v*(PTu*PTu)*2.0-(Lq1*Lq1)*(P0u*P0u)*P1v*PTv*2.0-(Lq1*Lq1)*(P1u*P1u)*P0v*PTv*2.0-P0u*P1u*P0v*P1v*2.0+P0u*P1u*P0v*PTv*2.0+P0u*P0v*P1v*PTu*2.0+P0u*P1u*P1v*PTv*2.0+P1u*P0v*P1v*PTu*2.0-P0u*P0v*PTu*PTv*2.0+P0u*P1v*PTu*PTv*2.0+P1u*P0v*PTu*PTv*2.0-P1u*P1v*PTu*PTv*2.0+Lp1*P0u*P2u*(P1v*P1v)*2.0+Lp2*P0u*P2u*(P1v*P1v)*2.0-Lp2*P1u*P2u*(P0v*P0v)*2.0+Lp1*(P1u*P1u)*P0v*P2v*2.0-Lp2*(P0u*P0u)*P1v*P2v*2.0+Lp2*(P1u*P1u)*P0v*P2v*2.0+Lp1*P0u*P1u*(PTv*PTv)*2.0+Lp1*P0u*(P1v*P1v)*PTu*2.0+Lp1*P1u*(P0v*P0v)*PTu*4.0+Lp1*P0u*P2u*(PTv*PTv)*2.0+Lp2*P0u*P1u*(PTv*PTv)*4.0+Lp2*P0u*(P1v*P1v)*PTu*2.0+Lp2*P1u*(P0v*P0v)*PTu*6.0-Lp1*P1u*P2u*(PTv*PTv)*2.0-Lp1*P2u*(P1v*P1v)*PTu*2.0+Lp2*P0u*P2u*(PTv*PTv)*4.0+Lp2*P2u*(P0v*P0v)*PTu*2.0-Lp2*P1u*P2u*(PTv*PTv)*4.0-Lp2*P2u*(P1v*P1v)*PTu*2.0+Lp1*P0v*P1v*(PTu*PTu)*2.0+Lp1*(P0u*P0u)*P1v*PTv*4.0+Lp1*(P1u*P1u)*P0v*PTv*2.0+Lp1*P0v*P2v*(PTu*PTu)*2.0+Lp2*P0v*P1v*(PTu*PTu)*4.0+Lp2*(P0u*P0u)*P1v*PTv*6.0+Lp2*(P1u*P1u)*P0v*PTv*2.0-Lp1*P1v*P2v*(PTu*PTu)*2.0-Lp1*(P1u*P1u)*P2v*PTv*2.0+Lp2*P0v*P2v*(PTu*PTu)*4.0+Lp2*(P0u*P0u)*P2v*PTv*2.0-Lp2*P1v*P2v*(PTu*PTu)*4.0-Lp2*(P1u*P1u)*P2v*PTv*2.0-Lq1*P0u*P1u*(PTv*PTv)*4.0-Lq1*P0u*(P1v*P1v)*PTu*4.0-Lq1*P1u*(P0v*P0v)*PTu*4.0-Lq1*P0v*P1v*(PTu*PTu)*4.0-Lq1*(P0u*P0u)*P1v*PTv*4.0-Lq1*(P1u*P1u)*P0v*PTv*4.0-Lp1*Lp2*P0u*P1u*(P2v*P2v)*2.0-Lp1*Lp2*P0u*P2u*(P1v*P1v)*4.0-Lp1*Lp2*P1u*P2u*(P0v*P0v)*2.0-Lp1*Lp2*(P0u*P0u)*P1v*P2v*2.0-Lp1*Lp2*(P1u*P1u)*P0v*P2v*4.0-Lp1*Lp2*(P2u*P2u)*P0v*P1v*2.0+Lp1*Lq1*P0u*P2u*(P1v*P1v)*2.0+Lp1*Lq1*P1u*P2u*(P0v*P0v)*4.0+Lp2*Lq1*P0u*P2u*(P1v*P1v)*2.0+Lp2*Lq1*P1u*P2u*(P0v*P0v)*2.0+Lp1*Lq1*(P0u*P0u)*P1v*P2v*4.0+Lp1*Lq1*(P1u*P1u)*P0v*P2v*2.0+Lp2*Lq1*(P0u*P0u)*P1v*P2v*2.0+Lp2*Lq1*(P1u*P1u)*P0v*P2v*2.0-Lp1*Lp2*P1u*(P0v*P0v)*PTu*2.0+Lp1*Lp2*P0u*(P2v*P2v)*PTu*2.0+Lp1*Lp2*P2u*(P0v*P0v)*PTu*2.0-Lp1*Lp2*P1u*(P2v*P2v)*PTu*2.0-Lp1*Lp2*(P0u*P0u)*P1v*PTv*2.0+Lp1*Lp2*(P0u*P0u)*P2v*PTv*2.0+Lp1*Lp2*(P2u*P2u)*P0v*PTv*2.0-Lp1*Lp2*(P2u*P2u)*P1v*PTv*2.0-Lp1*Lq1*P0u*P1u*(PTv*PTv)*2.0+Lp1*Lq1*P0u*(P1v*P1v)*PTu*2.0-Lp1*Lq1*P0u*P2u*(PTv*PTv)*2.0-Lp1*Lq1*P2u*(P0v*P0v)*PTu*4.0+Lp2*Lq1*P0u*(P1v*P1v)*PTu*2.0+Lp2*Lq1*P1u*(P0v*P0v)*PTu*2.0+Lp1*Lq1*P1u*P2u*(PTv*PTv)*2.0-Lp1*Lq1*P2u*(P1v*P1v)*PTu*2.0-Lp2*Lq1*P2u*(P0v*P0v)*PTu*2.0-Lp2*Lq1*P2u*(P1v*P1v)*PTu*2.0-Lp1*Lq1*P0v*P1v*(PTu*PTu)*2.0+Lp1*Lq1*(P1u*P1u)*P0v*PTv*2.0-Lp1*Lq1*P0v*P2v*(PTu*PTu)*2.0-Lp1*Lq1*(P0u*P0u)*P2v*PTv*4.0+Lp2*Lq1*(P0u*P0u)*P1v*PTv*2.0+Lp2*Lq1*(P1u*P1u)*P0v*PTv*2.0+Lp1*Lq1*P1v*P2v*(PTu*PTu)*2.0-Lp1*Lq1*(P1u*P1u)*P2v*PTv*2.0-Lp2*Lq1*(P0u*P0u)*P2v*PTv*2.0-Lp2*Lq1*(P1u*P1u)*P2v*PTv*2.0-(Lp1*Lp1)*P0u*P1u*P0v*P1v*2.0-(Lp2*Lp2)*P0u*P1u*P0v*P1v*2.0+(Lp1*Lp1)*P0u*P1u*P1v*P2v*2.0+(Lp1*Lp1)*P1u*P2u*P0v*P1v*2.0+(Lp2*Lp2)*P0u*P1u*P0v*P2v*2.0+(Lp2*Lp2)*P0u*P2u*P0v*P1v*2.0+(Lp2*Lp2)*P0u*P1u*P1v*P2v*2.0-(Lp2*Lp2)*P0u*P2u*P0v*P2v*2.0+(Lp2*Lp2)*P1u*P2u*P0v*P1v*2.0-(Lp1*Lp1)*P1u*P2u*P1v*P2v*2.0+(Lp2*Lp2)*P0u*P2u*P1v*P2v*2.0+(Lp2*Lp2)*P1u*P2u*P0v*P2v*2.0-(Lp2*Lp2)*P1u*P2u*P1v*P2v*2.0-(Lq1*Lq1)*P0u*P1u*P0v*P1v*2.0+(Lp1*Lp1)*P0u*P1u*P0v*PTv*2.0+(Lp1*Lp1)*P0u*P0v*P1v*PTu*2.0-(Lp1*Lp1)*P0u*P1u*P2v*PTv*2.0+(Lp1*Lp1)*P0u*P2u*P1v*PTv*4.0-(Lp1*Lp1)*P0u*P1v*P2v*PTu*2.0-(Lp1*Lp1)*P1u*P2u*P0v*PTv*2.0+(Lp1*Lp1)*P1u*P0v*P2v*PTu*4.0-(Lp1*Lp1)*P2u*P0v*P1v*PTu*2.0+(Lp1*Lp1)*P1u*P2u*P2v*PTv*2.0+(Lp1*Lp1)*P2u*P1v*P2v*PTu*2.0+(Lq1*Lq1)*P0u*P1u*P0v*PTv*2.0+(Lq1*Lq1)*P0u*P0v*P1v*PTu*2.0+(Lq1*Lq1)*P0u*P1u*P1v*PTv*2.0+(Lq1*Lq1)*P1u*P0v*P1v*PTu*2.0-(Lp1*Lp1)*P0u*P0v*PTu*PTv*2.0+(Lp1*Lp1)*P0u*P2v*PTu*PTv*2.0+(Lp1*Lp1)*P2u*P0v*PTu*PTv*2.0-(Lp1*Lp1)*P2u*P2v*PTu*PTv*2.0-(Lq1*Lq1)*P0u*P0v*PTu*PTv*2.0+(Lq1*Lq1)*P0u*P1v*PTu*PTv*2.0+(Lq1*Lq1)*P1u*P0v*PTu*PTv*2.0-(Lq1*Lq1)*P1u*P1v*PTu*PTv*2.0+Lp1*P0u*P1u*P0v*P1v*4.0+Lp2*P0u*P1u*P0v*P1v*4.0-Lp1*P0u*P1u*P1v*P2v*2.0-Lp1*P1u*P2u*P0v*P1v*2.0+Lp2*P0u*P1u*P0v*P2v*2.0+Lp2*P0u*P2u*P0v*P1v*2.0-Lp2*P0u*P1u*P1v*P2v*2.0-Lp2*P1u*P2u*P0v*P1v*2.0-Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*P0u*P1u*P0v*PTv*4.0-Lp1*P0u*P0v*P1v*PTu*4.0-Lp1*P0u*P1u*P1v*PTv*2.0-Lp1*P1u*P0v*P1v*PTu*2.0-Lp2*P0u*P1u*P0v*PTv*6.0-Lp2*P0u*P0v*P1v*PTu*6.0+Lp1*P0u*P1u*P2v*PTv*2.0-Lp1*P0u*P2u*P1v*PTv*4.0+Lp1*P0u*P1v*P2v*PTu*2.0+Lp1*P1u*P2u*P0v*PTv*2.0-Lp1*P1u*P0v*P2v*PTu*4.0+Lp1*P2u*P0v*P1v*PTu*2.0-Lp2*P0u*P1u*P1v*PTv*2.0-Lp2*P0u*P2u*P0v*PTv*2.0-Lp2*P0u*P0v*P2v*PTu*2.0-Lp2*P1u*P0v*P1v*PTu*2.0+Lp1*P1u*P2u*P1v*PTv*2.0+Lp1*P1u*P1v*P2v*PTu*2.0-Lp2*P0u*P2u*P1v*PTv*6.0+Lp2*P0u*P1v*P2v*PTu*6.0+Lp2*P1u*P2u*P0v*PTv*6.0-Lp2*P1u*P0v*P2v*PTu*6.0+Lp2*P1u*P2u*P1v*PTv*2.0+Lp2*P1u*P1v*P2v*PTu*2.0+Lq1*P0u*P1u*P0v*PTv*4.0+Lq1*P0u*P0v*P1v*PTu*4.0+Lq1*P0u*P1u*P1v*PTv*4.0+Lq1*P1u*P0v*P1v*PTu*4.0+Lp1*P0u*P0v*PTu*PTv*4.0-Lp1*P0u*P1v*PTu*PTv*2.0-Lp1*P1u*P0v*PTu*PTv*2.0+Lp2*P0u*P0v*PTu*PTv*8.0-Lp1*P0u*P2v*PTu*PTv*2.0-Lp1*P2u*P0v*PTu*PTv*2.0-Lp2*P0u*P1v*PTu*PTv*4.0-Lp2*P1u*P0v*PTu*PTv*4.0+Lp1*P1u*P2v*PTu*PTv*2.0+Lp1*P2u*P1v*PTu*PTv*2.0-Lp2*P0u*P2v*PTu*PTv*4.0-Lp2*P2u*P0v*PTu*PTv*4.0+Lp2*P1u*P2v*PTu*PTv*4.0+Lp2*P2u*P1v*PTu*PTv*4.0-Lq1*P0u*P0v*PTu*PTv*4.0+Lq1*P0u*P1v*PTu*PTv*4.0+Lq1*P1u*P0v*PTu*PTv*4.0-Lq1*P1u*P1v*PTu*PTv*4.0-Lp1*Lp2*P0u*P1u*P0v*P1v*4.0+Lp1*Lp2*P0u*P1u*P0v*P2v*2.0+Lp1*Lp2*P0u*P2u*P0v*P1v*2.0+Lp1*Lp2*P0u*P1u*P1v*P2v*4.0+Lp1*Lp2*P1u*P2u*P0v*P1v*4.0+Lp1*Lp2*P0u*P2u*P1v*P2v*2.0+Lp1*Lp2*P1u*P2u*P0v*P2v*2.0-Lp1*Lp2*P1u*P2u*P1v*P2v*4.0+Lp1*Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*Lq1*P0u*P1u*P0v*P2v*4.0-Lp1*Lq1*P0u*P2u*P0v*P1v*4.0+Lp2*Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*Lq1*P0u*P1u*P1v*P2v*2.0-Lp1*Lq1*P1u*P2u*P0v*P1v*2.0-Lp2*Lq1*P0u*P1u*P0v*P2v*2.0-Lp2*Lq1*P0u*P2u*P0v*P1v*2.0-Lp2*Lq1*P0u*P1u*P1v*P2v*2.0-Lp2*Lq1*P1u*P2u*P0v*P1v*2.0+Lp1*Lp2*P0u*P1u*P0v*PTv*2.0+Lp1*Lp2*P0u*P0v*P1v*PTu*2.0-Lp1*Lp2*P0u*P2u*P0v*PTv*2.0-Lp1*Lp2*P0u*P0v*P2v*PTu*2.0-Lp1*Lp2*P0u*P1u*P2v*PTv*2.0+Lp1*Lp2*P0u*P2u*P1v*PTv*4.0-Lp1*Lp2*P0u*P1v*P2v*PTu*2.0-Lp1*Lp2*P1u*P2u*P0v*PTv*2.0+Lp1*Lp2*P1u*P0v*P2v*PTu*4.0-Lp1*Lp2*P2u*P0v*P1v*PTu*2.0-Lp1*Lp2*P0u*P2u*P2v*PTv*2.0-Lp1*Lp2*P2u*P0v*P2v*PTu*2.0+Lp1*Lp2*P1u*P2u*P2v*PTv*2.0+Lp1*Lp2*P2u*P1v*P2v*PTu*2.0-Lp1*Lq1*P0u*P1u*P1v*PTv*2.0+Lp1*Lq1*P0u*P2u*P0v*PTv*4.0+Lp1*Lq1*P0u*P0v*P2v*PTu*4.0-Lp1*Lq1*P1u*P0v*P1v*PTu*2.0-Lp2*Lq1*P0u*P1u*P0v*PTv*2.0-Lp2*Lq1*P0u*P0v*P1v*PTu*2.0+Lp1*Lq1*P0u*P1u*P2v*PTv*6.0-Lp1*Lq1*P0u*P1v*P2v*PTu*6.0-Lp1*Lq1*P1u*P2u*P0v*PTv*6.0+Lp1*Lq1*P2u*P0v*P1v*PTu*6.0-Lp2*Lq1*P0u*P1u*P1v*PTv*2.0+Lp2*Lq1*P0u*P2u*P0v*PTv*2.0+Lp2*Lq1*P0u*P0v*P2v*PTu*2.0-Lp2*Lq1*P1u*P0v*P1v*PTu*2.0+Lp1*Lq1*P1u*P2u*P1v*PTv*2.0+Lp1*Lq1*P1u*P1v*P2v*PTu*2.0+Lp2*Lq1*P0u*P1u*P2v*PTv*4.0-Lp2*Lq1*P0u*P2u*P1v*PTv*2.0-Lp2*Lq1*P0u*P1v*P2v*PTu*2.0-Lp2*Lq1*P1u*P2u*P0v*PTv*2.0-Lp2*Lq1*P1u*P0v*P2v*PTu*2.0+Lp2*Lq1*P2u*P0v*P1v*PTu*4.0+Lp2*Lq1*P1u*P2u*P1v*PTv*2.0+Lp2*Lq1*P1u*P1v*P2v*PTu*2.0-Lp1*Lq1*P0u*P0v*PTu*PTv*4.0+Lp1*Lq1*P0u*P1v*PTu*PTv*2.0+Lp1*Lq1*P1u*P0v*PTu*PTv*2.0+Lp1*Lq1*P0u*P2v*PTu*PTv*2.0+Lp1*Lq1*P2u*P0v*PTu*PTv*2.0-Lp1*Lq1*P1u*P2v*PTu*PTv*2.0-Lp1*Lq1*P2u*P1v*PTu*PTv*2.0)*(1.0/2.0)+P0u*P1v*(1.0/2.0)-P1u*P0v*(1.0/2.0)-P0u*PTv*(1.0/2.0)+P0v*PTu*(1.0/2.0)+P1u*PTv*(1.0/2.0)-P1v*PTu*(1.0/2.0)-Lp1*P0u*P1v*(1.0/2.0)+Lp1*P1u*P0v*(1.0/2.0)+Lp1*P0u*P2v-Lp1*P2u*P0v-Lp2*P0u*P1v*(1.0/2.0)+Lp2*P1u*P0v*(1.0/2.0)-Lp1*P1u*P2v*(1.0/2.0)+Lp1*P2u*P1v*(1.0/2.0)+Lp2*P0u*P2v*(1.0/2.0)-Lp2*P2u*P0v*(1.0/2.0)-Lp2*P1u*P2v*(1.0/2.0)+Lp2*P2u*P1v*(1.0/2.0)+Lq1*P0u*P1v*(1.0/2.0)-Lq1*P1u*P0v*(1.0/2.0)-Lp1*P0u*PTv*(1.0/2.0)+Lp1*P0v*PTu*(1.0/2.0)+Lp1*P2u*PTv*(1.0/2.0)-Lp1*P2v*PTu*(1.0/2.0)-Lq1*P0u*PTv*(1.0/2.0)+Lq1*P0v*PTu*(1.0/2.0)+Lq1*P1u*PTv*(1.0/2.0)-Lq1*P1v*PTu*(1.0/2.0))/(P0u*P1v-P1u*P0v-P0u*PTv+P0v*PTu+P1u*PTv-P1v*PTu-Lp1*P0u*P1v+Lp1*P1u*P0v+Lp1*P0u*P2v-Lp1*P2u*P0v-Lp1*P1u*P2v+Lp1*P2u*P1v);
+  } else {
+    dR = 1.0 - (sqrt(Lp1*Lp1*P0u*P0u*P2v*P2v - 2*Lp1*Lp1*P0u*P0u*P2v*PTv + Lp1*Lp1*P0u*P0u*PTv*PTv - 2*Lp1*Lp1*P0u*P2u*P0v*P2v + 2*Lp1*Lp1*P0u*P2u*P0v*PTv + 2*Lp1*Lp1*P0u*P2u*P2v*PTv - 2*Lp1*Lp1*P0u*P2u*PTv*PTv + 2*Lp1*Lp1*P0u*P0v*P2v*PTu - 2*Lp1*Lp1*P0u*P0v*PTu*PTv - 2*Lp1*Lp1*P0u*P2v*P2v*PTu + 2*Lp1*Lp1*P0u*P2v*PTu*PTv + Lp1*Lp1*P2u*P2u*P0v*P0v - 2*Lp1*Lp1*P2u*P2u*P0v*PTv + Lp1*Lp1*P2u*P2u*PTv*PTv - 2*Lp1*Lp1*P2u*P0v*P0v*PTu + 2*Lp1*Lp1*P2u*P0v*P2v*PTu + 2*Lp1*Lp1*P2u*P0v*PTu*PTv - 2*Lp1*Lp1*P2u*P2v*PTu*PTv + Lp1*Lp1*P0v*P0v*PTu*PTu - 2*Lp1*Lp1*P0v*P2v*PTu*PTu + Lp1*Lp1*P2v*P2v*PTu*PTu - 2*Lp1*Lp2*P0u*P0u*P1v*P2v + 2*Lp1*Lp2*P0u*P0u*P1v*PTv + 2*Lp1*Lp2*P0u*P0u*P2v*P2v - 2*Lp1*Lp2*P0u*P0u*P2v*PTv + 2*Lp1*Lp2*P0u*P1u*P0v*P2v - 2*Lp1*Lp2*P0u*P1u*P0v*PTv - 2*Lp1*Lp2*P0u*P1u*P2v*P2v + 2*Lp1*Lp2*P0u*P1u*P2v*PTv + 2*Lp1*Lp2*P0u*P2u*P0v*P1v - 4*Lp1*Lp2*P0u*P2u*P0v*P2v + 2*Lp1*Lp2*P0u*P2u*P0v*PTv + 2*Lp1*Lp2*P0u*P2u*P1v*P2v - 4*Lp1*Lp2*P0u*P2u*P1v*PTv + 2*Lp1*Lp2*P0u*P2u*P2v*PTv - 2*Lp1*Lp2*P0u*P0v*P1v*PTu + 2*Lp1*Lp2*P0u*P0v*P2v*PTu + 2*Lp1*Lp2*P0u*P1v*P2v*PTu - 2*Lp1*Lp2*P0u*P2v*P2v*PTu - 2*Lp1*Lp2*P1u*P2u*P0v*P0v + 2*Lp1*Lp2*P1u*P2u*P0v*P2v + 2*Lp1*Lp2*P1u*P2u*P0v*PTv - 2*Lp1*Lp2*P1u*P2u*P2v*PTv + 2*Lp1*Lp2*P1u*P0v*P0v*PTu - 4*Lp1*Lp2*P1u*P0v*P2v*PTu + 2*Lp1*Lp2*P1u*P2v*P2v*PTu + 2*Lp1*Lp2*P2u*P2u*P0v*P0v - 2*Lp1*Lp2*P2u*P2u*P0v*P1v - 2*Lp1*Lp2*P2u*P2u*P0v*PTv + 2*Lp1*Lp2*P2u*P2u*P1v*PTv - 2*Lp1*Lp2*P2u*P0v*P0v*PTu + 2*Lp1*Lp2*P2u*P0v*P1v*PTu + 2*Lp1*Lp2*P2u*P0v*P2v*PTu - 2*Lp1*Lp2*P2u*P1v*P2v*PTu - 2*Lp1*Lq1*P0u*P0u*P1v*P2v + 2*Lp1*Lq1*P0u*P0u*P1v*PTv + 2*Lp1*Lq1*P0u*P0u*P2v*PTv - 2*Lp1*Lq1*P0u*P0u*PTv*PTv + 2*Lp1*Lq1*P0u*P1u*P0v*P2v - 2*Lp1*Lq1*P0u*P1u*P0v*PTv - 2*Lp1*Lq1*P0u*P1u*P2v*PTv + 2*Lp1*Lq1*P0u*P1u*PTv*PTv + 2*Lp1*Lq1*P0u*P2u*P0v*P1v - 2*Lp1*Lq1*P0u*P2u*P0v*PTv - 2*Lp1*Lq1*P0u*P2u*P1v*PTv + 2*Lp1*Lq1*P0u*P2u*PTv*PTv - 2*Lp1*Lq1*P0u*P0v*P1v*PTu - 2*Lp1*Lq1*P0u*P0v*P2v*PTu + 4*Lp1*Lq1*P0u*P0v*PTu*PTv + 4*Lp1*Lq1*P0u*P1v*P2v*PTu - 2*Lp1*Lq1*P0u*P1v*PTu*PTv - 2*Lp1*Lq1*P0u*P2v*PTu*PTv - 2*Lp1*Lq1*P1u*P2u*P0v*P0v + 4*Lp1*Lq1*P1u*P2u*P0v*PTv - 2*Lp1*Lq1*P1u*P2u*PTv*PTv + 2*Lp1*Lq1*P1u*P0v*P0v*PTu - 2*Lp1*Lq1*P1u*P0v*P2v*PTu - 2*Lp1*Lq1*P1u*P0v*PTu*PTv + 2*Lp1*Lq1*P1u*P2v*PTu*PTv + 2*Lp1*Lq1*P2u*P0v*P0v*PTu - 2*Lp1*Lq1*P2u*P0v*P1v*PTu - 2*Lp1*Lq1*P2u*P0v*PTu*PTv + 2*Lp1*Lq1*P2u*P1v*PTu*PTv - 2*Lp1*Lq1*P0v*P0v*PTu*PTu + 2*Lp1*Lq1*P0v*P1v*PTu*PTu + 2*Lp1*Lq1*P0v*P2v*PTu*PTu - 2*Lp1*Lq1*P1v*P2v*PTu*PTu + Lp2*Lp2*P0u*P0u*P1v*P1v - 2*Lp2*Lp2*P0u*P0u*P1v*P2v + Lp2*Lp2*P0u*P0u*P2v*P2v - 2*Lp2*Lp2*P0u*P1u*P0v*P1v + 2*Lp2*Lp2*P0u*P1u*P0v*P2v + 2*Lp2*Lp2*P0u*P1u*P1v*P2v - 2*Lp2*Lp2*P0u*P1u*P2v*P2v + 2*Lp2*Lp2*P0u*P2u*P0v*P1v - 2*Lp2*Lp2*P0u*P2u*P0v*P2v - 2*Lp2*Lp2*P0u*P2u*P1v*P1v + 2*Lp2*Lp2*P0u*P2u*P1v*P2v + Lp2*Lp2*P1u*P1u*P0v*P0v - 2*Lp2*Lp2*P1u*P1u*P0v*P2v + Lp2*Lp2*P1u*P1u*P2v*P2v - 2*Lp2*Lp2*P1u*P2u*P0v*P0v + 2*Lp2*Lp2*P1u*P2u*P0v*P1v + 2*Lp2*Lp2*P1u*P2u*P0v*P2v - 2*Lp2*Lp2*P1u*P2u*P1v*P2v + Lp2*Lp2*P2u*P2u*P0v*P0v - 2*Lp2*Lp2*P2u*P2u*P0v*P1v + Lp2*Lp2*P2u*P2u*P1v*P1v - 2*Lp2*Lq1*P0u*P0u*P1v*P1v + 2*Lp2*Lq1*P0u*P0u*P1v*P2v + 2*Lp2*Lq1*P0u*P0u*P1v*PTv - 2*Lp2*Lq1*P0u*P0u*P2v*PTv + 4*Lp2*Lq1*P0u*P1u*P0v*P1v - 2*Lp2*Lq1*P0u*P1u*P0v*P2v - 2*Lp2*Lq1*P0u*P1u*P0v*PTv - 2*Lp2*Lq1*P0u*P1u*P1v*P2v - 2*Lp2*Lq1*P0u*P1u*P1v*PTv + 4*Lp2*Lq1*P0u*P1u*P2v*PTv - 2*Lp2*Lq1*P0u*P2u*P0v*P1v + 2*Lp2*Lq1*P0u*P2u*P0v*PTv + 2*Lp2*Lq1*P0u*P2u*P1v*P1v - 2*Lp2*Lq1*P0u*P2u*P1v*PTv - 2*Lp2*Lq1*P0u*P0v*P1v*PTu + 2*Lp2*Lq1*P0u*P0v*P2v*PTu + 2*Lp2*Lq1*P0u*P1v*P1v*PTu - 2*Lp2*Lq1*P0u*P1v*P2v*PTu - 2*Lp2*Lq1*P1u*P1u*P0v*P0v + 2*Lp2*Lq1*P1u*P1u*P0v*P2v + 2*Lp2*Lq1*P1u*P1u*P0v*PTv - 2*Lp2*Lq1*P1u*P1u*P2v*PTv + 2*Lp2*Lq1*P1u*P2u*P0v*P0v - 2*Lp2*Lq1*P1u*P2u*P0v*P1v - 2*Lp2*Lq1*P1u*P2u*P0v*PTv + 2*Lp2*Lq1*P1u*P2u*P1v*PTv + 2*Lp2*Lq1*P1u*P0v*P0v*PTu - 2*Lp2*Lq1*P1u*P0v*P1v*PTu - 2*Lp2*Lq1*P1u*P0v*P2v*PTu + 2*Lp2*Lq1*P1u*P1v*P2v*PTu - 2*Lp2*Lq1*P2u*P0v*P0v*PTu + 4*Lp2*Lq1*P2u*P0v*P1v*PTu - 2*Lp2*Lq1*P2u*P1v*P1v*PTu + 4*Lp2*P0u*P0u*P1v*P2v - 4*Lp2*P0u*P0u*P1v*PTv - 4*Lp2*P0u*P0u*P2v*PTv + 4*Lp2*P0u*P0u*PTv*PTv - 4*Lp2*P0u*P1u*P0v*P2v + 4*Lp2*P0u*P1u*P0v*PTv + 4*Lp2*P0u*P1u*P2v*PTv - 4*Lp2*P0u*P1u*PTv*PTv - 4*Lp2*P0u*P2u*P0v*P1v + 4*Lp2*P0u*P2u*P0v*PTv + 4*Lp2*P0u*P2u*P1v*PTv - 4*Lp2*P0u*P2u*PTv*PTv + 4*Lp2*P0u*P0v*P1v*PTu + 4*Lp2*P0u*P0v*P2v*PTu - 8*Lp2*P0u*P0v*PTu*PTv - 8*Lp2*P0u*P1v*P2v*PTu + 4*Lp2*P0u*P1v*PTu*PTv + 4*Lp2*P0u*P2v*PTu*PTv + 4*Lp2*P1u*P2u*P0v*P0v - 8*Lp2*P1u*P2u*P0v*PTv + 4*Lp2*P1u*P2u*PTv*PTv - 4*Lp2*P1u*P0v*P0v*PTu + 4*Lp2*P1u*P0v*P2v*PTu + 4*Lp2*P1u*P0v*PTu*PTv - 4*Lp2*P1u*P2v*PTu*PTv - 4*Lp2*P2u*P0v*P0v*PTu + 4*Lp2*P2u*P0v*P1v*PTu + 4*Lp2*P2u*P0v*PTu*PTv - 4*Lp2*P2u*P1v*PTu*PTv + 4*Lp2*P0v*P0v*PTu*PTu - 4*Lp2*P0v*P1v*PTu*PTu - 4*Lp2*P0v*P2v*PTu*PTu + 4*Lp2*P1v*P2v*PTu*PTu + Lq1*Lq1*P0u*P0u*P1v*P1v - 2*Lq1*Lq1*P0u*P0u*P1v*PTv + Lq1*Lq1*P0u*P0u*PTv*PTv - 2*Lq1*Lq1*P0u*P1u*P0v*P1v + 2*Lq1*Lq1*P0u*P1u*P0v*PTv + 2*Lq1*Lq1*P0u*P1u*P1v*PTv - 2*Lq1*Lq1*P0u*P1u*PTv*PTv + 2*Lq1*Lq1*P0u*P0v*P1v*PTu - 2*Lq1*Lq1*P0u*P0v*PTu*PTv - 2*Lq1*Lq1*P0u*P1v*P1v*PTu + 2*Lq1*Lq1*P0u*P1v*PTu*PTv + Lq1*Lq1*P1u*P1u*P0v*P0v - 2*Lq1*Lq1*P1u*P1u*P0v*PTv + Lq1*Lq1*P1u*P1u*PTv*PTv - 2*Lq1*Lq1*P1u*P0v*P0v*PTu + 2*Lq1*Lq1*P1u*P0v*P1v*PTu + 2*Lq1*Lq1*P1u*P0v*PTu*PTv - 2*Lq1*Lq1*P1u*P1v*PTu*PTv + Lq1*Lq1*P0v*P0v*PTu*PTu - 2*Lq1*Lq1*P0v*P1v*PTu*PTu + Lq1*Lq1*P1v*P1v*PTu*PTu) + 2*P0u*P1v - 2*P1u*P0v - 2*P0u*PTv + 2*P0v*PTu + 2*P1u*PTv - 2*P1v*PTu - 2*Lp1*P0u*P1v + 2*Lp1*P1u*P0v + Lp1*P0u*P2v - Lp1*P2u*P0v - Lp2*P0u*P1v + Lp2*P1u*P0v - 2*Lp1*P1u*P2v + 2*Lp1*P2u*P1v + Lp2*P0u*P2v - Lp2*P2u*P0v - Lp2*P1u*P2v + Lp2*P2u*P1v + Lq1*P0u*P1v - Lq1*P1u*P0v + Lp1*P0u*PTv - Lp1*P0v*PTu - Lp1*P2u*PTv + Lp1*P2v*PTu - Lq1*P0u*PTv + Lq1*P0v*PTu + Lq1*P1u*PTv - Lq1*P1v*PTu)/(2*(P0u*P1v - P1u*P0v - P0u*PTv + P0v*PTu + P1u*PTv - P1v*PTu - Lp1*P0u*P1v + Lp1*P1u*P0v + Lp1*P0u*P2v - Lp1*P2u*P0v - Lp1*P1u*P2v + Lp1*P2u*P1v));
   }
-  
+
+  double level;
+  if (Rp1 < 0) {
+    level = (Rp1*dR + Rp2) / (dR + Rq1);
+  } else {
+    level = (Rp1*(1 - dR) + Rp2) / ((1 - dR) + Rq1);
+  }
+
   return level;
 }
 
@@ -308,7 +142,7 @@ bool getOnOff () {
 /**
  * Get CIE 1976 UCS color coordinates
  */
-Cie1976Ucs getCie1976Ucs () {
+Luv getCie1976Ucs () {
   return luv_;
 }
 
@@ -341,9 +175,9 @@ void setRaw (RGB raw) {
   int pwmB = static_cast<int>(raw.B * pwmRange_ + 0.5);
 
   // Write PWMs
-  //analogWrite(redPin_, pwmR);
-  //analogWrite(greenPin_, pwmG);
-  //analogWrite(bluePin_, pwmB);
+  analogWrite(redPin_, pwmR);
+  analogWrite(greenPin_, pwmG);
+  analogWrite(bluePin_, pwmB);
 
   // Save values
   raw_.R = static_cast<float>(pwmR) / pwmRange_;
@@ -375,44 +209,28 @@ void setOnOff (bool onOff) {
 /**
  * Set CIE 1976 UCS color coordinates
  */
-void setCie1976Ucs (Cie1976Ucs luv) {
+void setCie1976Ucs (Luv target) {
 
   // Off -> exit
   if (!getOnOff()) return;
 
   // Convert to raw PWM values
   RGB raw;
-  Cie1976Ucs uvs[3];
   
-  // Coefficient for red
-  uvs[0] = redUv_;
-  uvs[1] = greenUv_;
-  uvs[2] = blueUv_;
-  raw.R = findCoefficient(uvs, luv, redToGreenFit_, redToBlueFit_);
-  Serial.print("raw.R: ");
-  Serial.println(raw.R);
+  // Coefficients
+  unsigned long startTime = millis();
+  raw.R = findCoefficient(target, redUv_, greenUv_, blueUv_, redToGreenFit_, greenToBlueFit_);
+  raw.G = findCoefficient(target, greenUv_, blueUv_, redUv_, greenToBlueFit_, blueToRedFit_);
+  raw.B = findCoefficient(target, blueUv_, redUv_, greenUv_, blueToRedFit_, redToGreenFit_);
+  unsigned long endTime = millis();
+  unsigned long deltaTime = endTime - startTime;
+  Serial.print("Duration: "); Serial.println(deltaTime);
   
-  // Coefficient for green
-  uvs[0] = greenUv_;
-  uvs[1] = blueUv_;
-  uvs[2] = redUv_;
-  raw.G = findCoefficient(uvs, luv, greenToBlueFit_, greenToRedFit_);
-  Serial.print("raw.G: ");
-  Serial.println(raw.G);
-  
-  // Coefficient for blue
-  uvs[0] = blueUv_;
-  uvs[1] = redUv_;
-  uvs[2] = greenUv_;
-  raw.B = findCoefficient(uvs, luv, blueToRedFit_, blueToGreenFit_);
-  Serial.print("raw.B: ");
-  Serial.println(raw.B);
-/*
   // Luma produced by the current raw values
   float Y = (raw.R * redLum_ + raw.G * greenLum_ + raw.B * blueLum_) / maxLum_;
 
   // Luma level needed for requested lightness
-  float Y_target = pow(((luv.L + 16) / 116), 3);
+  float Y_target = pow(((target.L + 16) / 116), 3);
   
   // Luma factor
   float C = Y_target / Y;
@@ -421,7 +239,7 @@ void setCie1976Ucs (Cie1976Ucs luv) {
   raw.R = raw.R * C;
   raw.G = raw.G * C;
   raw.B = raw.B * C;
-  
+
   // Find max scaled raw value
   float maxRaw = raw.R;
   if (raw.G > maxRaw) maxRaw = raw.G;
@@ -429,18 +247,18 @@ void setCie1976Ucs (Cie1976Ucs luv) {
 
   // Nothing can be more than at max power, limit coefficients to 1
   if (maxRaw > 1) {
-    raw.R = raw.R * (1 / maxRaw);
-    raw.G = raw.G * (1 / maxRaw);
-    raw.B = raw.B * (1 / maxRaw);
+    raw.R = raw.R * (1.0 / maxRaw);
+    raw.G = raw.G * (1.0 / maxRaw);
+    raw.B = raw.B * (1.0 / maxRaw);
   }
-*/
+
   // Write PWMs
   setRaw(raw);
 
   // Save values
-  luv_.L = luv.L;
-  luv_.u = luv.u;
-  luv_.v = luv.v;
+  luv_.L = target.L;
+  luv_.u = target.u;
+  luv_.v = target.v;
 }
 
 /**
@@ -459,7 +277,7 @@ void setColorTemperature (float L, int T) {
   double v = (0.000311*pow(x,4.0) + 0.0009124*pow(x,3.0) + 0.3856*pow(x,2.0) + 1.873*x + 2.619) / (pow(x,2.0) + 4.323*x + 5.485);
 
   // Construct CIE 1976 UCS values from internal lightness and newly calculated u', v' coordinates
-  Cie1976Ucs luv = {luv_.L, u, v};
+  Luv luv = {luv_.L, u, v};
   
   // Lightness is given and valid
   if (L > 0) luv.L = L;
@@ -569,24 +387,21 @@ void httpRawController () {
 
   int httpStatus = 200;
 
-  // All or none of the parameters must be missing
+  // All parameters must be given for write
   if (R >= 0 && G >= 0 && B >= 0) {
-    // All parameters given -> set new color
+    // All parameters given -> set new values
     RGB raw = {R, G, B};
     setRaw(raw);
   }
   
-  // Read (updated) color
+  // Read (updated) values
   RGB raw = getRaw();
-  R = raw.R;
-  G = raw.G;
-  B = raw.B;
 
   // JSON response
   char response[60];
-  char strR[10]; dtostrf(R, 6, 4, strR);
-  char strG[10]; dtostrf(G, 6, 4, strG);
-  char strB[10]; dtostrf(B, 6, 4, strB);
+  char strR[10]; dtostrf(raw.R, 6, 4, strR);
+  char strG[10]; dtostrf(raw.G, 6, 4, strG);
+  char strB[10]; dtostrf(raw.B, 6, 4, strB);
   sprintf(response, "{\n  \"R\": %s,\n  \"G\": %s,\n  \"B\": %s\n}", strR, strG, strB);
 
   // Send response
@@ -612,12 +427,12 @@ void httpCie1976UcsController () {
   // All or none of the parameters must be missing
   if (L >= 0 && u >= 0 && v >= 0) {
     // All parameters given -> set new color
-    Cie1976Ucs luv = {L, u, v};
+    Luv luv = {L, u, v};
     setCie1976Ucs(luv);
   }
   
   // Read (updated) color
-  Cie1976Ucs luv = getCie1976Ucs();
+  Luv luv = getCie1976Ucs();
   L = luv.L;
   u = luv.u;
   v = luv.v;
@@ -656,13 +471,13 @@ void httpColorTemperatureController () {
   T = getColorTemperature();
 
   // Read (updated) lightness
-  Cie1976Ucs luv = getCie1976Ucs();
+  Luv luv = getCie1976Ucs();
   L = luv.L;
 
   // JSON response
   char response[60];
   char strL[10]; dtostrf(L, 6, 4, strL);
-  sprintf(response, "{\n  \"L\": %s,\n  \"T\": %d}", L, T);
+  sprintf(response, "{\n  \"L\": %s,\n  \"T\": %d\n}", strL, T);
 
   // Send response
   server.send(200, "application/json", response);

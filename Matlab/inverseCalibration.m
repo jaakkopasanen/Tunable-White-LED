@@ -95,4 +95,4 @@ if length(sol) > 1
 end
 
 matlabFormula = sol
-cCodeFormula = ccode(sol)
+cCodeFormula = ccode(sol, 'file', 'ccodetest')

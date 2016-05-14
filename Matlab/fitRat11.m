@@ -6,7 +6,7 @@ function [ result, inversed ] = fitRat11( x, y )
 startPoint = [-1 1 1];
 inversed = false;
 % Raising x -> inverse it
-if x(round(length(x)/2)) > 0.5
+if x(round(length(x)/2)) > y(round(length(y)/2))
     x = 1 - x;
     startPoint = [1 -1 1];
     inversed = true;

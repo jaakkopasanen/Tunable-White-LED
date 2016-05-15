@@ -1,0 +1,27 @@
+1. Investigate mobile request hangs
+2. LED engine as Arduino library
+3. PWM range to 4095
+4. Clip u', v' values into gamut
+5. Update Lightness after limiting raw values?
+6. Update Lightness in WebUI on AJAX response?
+7. Calibration data as a struct
+8. Getter for calibration data
+9. Rename calibrate() as setCalibration()
+10. Calibration data to Flash
+11. Color data and temperature to Flash
+12. Scheduler
+13. Transitions
+14. Animations
+15. Pin calibration
+16. Groups
+17. HTTP broadcasting to all / group
+18. Copy configurations to a new esp8266 in AP mode
+19. JSONP ping
+20. Global WebUI
+  1. searches all devicewith JSONP ping
+  2. Show all devices
+  3. Show all groups
+  4. Tuning data generator
+22. Landing page
+23. Separate GitHub repositories for matlab, esp, WebUI and landing page
+24. Android app with calibration by camera

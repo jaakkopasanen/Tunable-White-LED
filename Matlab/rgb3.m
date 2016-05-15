@@ -11,9 +11,9 @@ L = 380:5:780;
 %green = gaussmf(L, [10/2.355 (525+rand()*5)])*(1+rand()*0.5);
 %blue = gaussmf(L, [10/2.355 (465+rand()*5)])*(1+rand()*0.5);
 
-red = gaussmf(L, [10/2.355 630]); redL = 160;
-green = gaussmf(L, [10/2.355 525]); greenL = 320;
-blue = gaussmf(L, [10/2.355 465]); blueL = 240;
+red = gaussmf(L, [5/2.355 630]); redL = 11;
+green = gaussmf(L, [5/2.355 525]); greenL = 100;
+blue = gaussmf(L, [5/2.355 465]); blueL = 20;
 powers = [
     redL / spdToLER(red)
     greenL / spdToLER(green)
@@ -152,12 +152,16 @@ plotCieLuv([], false);
 hold on;
 plot(sourceUvs(:,1), sourceUvs(:,2), 'k');
 err = [];
-testPoints = [0.1934 0.4985];
+testPoints = [
+    0.205 0.562
+    0.079 0.443
+    0.334 0.292
+];
 
-for i = 1:25
+for i = 1:3
     % Test point
-    target = [rand*0.55 rand*0.6];
-    %target = testPoints(i,:);
+    %target = [rand*0.55 rand*0.6];
+    target = testPoints(i,:);
     
     % Not inside gamut, omit point
     if ~inpolygon(target(1), target(2), sourceUvs(1:3,1), sourceUvs(1:3,2))
@@ -199,7 +203,7 @@ luminousFluxes = [
 ];
 luminousFluxes = luminousFluxes * (1 / max(luminousFluxes));
 %}
-
+%
 disp([
     '----------------------------'
     'Red-to-blue VS Green-to-blue'
@@ -219,7 +223,6 @@ disp([
 ]);
 disp([bgFit; rgFit]);
 
-%
 disp([
     '----------------------------'
     'Relative luminous fluxes    '

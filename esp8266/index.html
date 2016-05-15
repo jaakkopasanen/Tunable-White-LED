@@ -2,10 +2,20 @@
 <html>
 <head>
 	<meta name='viewport' content='width=device-width, initial-scale=1.0'>
+	<script src='https://cdn.linearicons.com/free/1.0.0/svgembedder.min.js'></script>
 	<style>
+		.lnr {
+			display: inline-block;
+			fill: currentColor;
+			width: 1em;
+			height: 1em;
+			vertical-align: -0.05em;
+			font-size: 26px;
+		}
+		
 		html {
 			height: 100%;
-			font-family: Arial;
+			font-family: sans-serif;
 		}
 		body {
 			background: #555555;
@@ -75,6 +85,8 @@
 		button:hover { cursor: pointer; }
 		
 		#settings-button { background-color: hsl(213, 100%, 60%); }
+		#schedule-button { background-color: hsl(276, 100%, 40%); }
+		#schedule-button.active { background-color: hsl(276, 100%, 70%); }
 		#off-button { background-color: hsl(9, 100%, 25%); }
 		#off-button.active { background-color: hsl(9, 100%, 60%); }
 		#on-button { background-color: hsl(120, 100%, 20%); }
@@ -144,13 +156,6 @@
 			margin-top: 0;
 			font-weight: normal;
 		}
-		#settings textarea {
-			width: 100%;
-			border: none;
-			padding: 10px;
-			border-radius: 2px;
-			box-sizing: border-box;
-		}
 		#settings button { float: left; width: 50%; }
 		#settings-save-button {
 			background-color: hsl(213, 100%, 60%);
@@ -161,6 +166,23 @@
 			background-color: hsl(9, 100%, 25%);
 			border-top-right-radius: 0;
 			border-bottom-right-radius: 0;
+		}
+		#settings table {
+			margin-bottom: 16px;
+		}
+		#settings tr.header th {
+			padding-top: 16px;
+			font-style: italic;
+			font-weight: lighter;
+			text-align: left;
+		}
+		#settings input[type='number'] {
+		    max-width: 150px;
+			width: 100%;
+			border: none;
+			border-radius: 2px;
+			padding: 6px;
+			box-sizing: border-box;
 		}
 	</style>
 </head>
@@ -188,70 +210,140 @@
 		</div>
 		
 		<div class='layout-row'>
-			<button id='off-button' type='button' class='flex'>OFF</button>
-			<button id='settings-button' type='button' class='flex'>SETTINGS</button>
-			<button id='on-button' type='button' class='flex'>ON</button>
+			<button id='off-button' type='button' class='flex'>
+				<svg class='lnr'><use xlink:href='#lnr-moon'></use></svg>
+			</button>
+			<button id='schedule-button' type='button' class='flex'>
+				<svg class='lnr'><use xlink:href='#lnr-calendar-full'></use></svg>
+			</button>
+			<button id='settings-button' type='button' class='flex'>
+				<svg class='lnr'><use xlink:href='#lnr-cog'></use></svg>
+			</button>
+			<button id='on-button' type='button' class='flex'>
+				<svg class='lnr'><use xlink:href='#lnr-sun'></use></svg>
+			</button>
 		</div>
 
 	</div>
 	
 	<div id='settings' class='layout-column layout-align-center-center no-show'>
 		<div class='tile'>
-			<h1>CALIBRATE</h1>
-			<textarea rows='4'></textarea>
-			<button id='settings-close-button' type='button'>CLOSE</button>
-			<button id='settings-save-button' type='button'>SAVE</button>
+			<table>
+				<tr>
+					<th></th>
+					<th>Red</th>
+					<th>Green</th>
+					<th>Blue</th>
+				</tr>
+				<tr class='header'><th colspan='4'>CIE 1976 UCS</th></tr>
+				<tr>
+					<th>u'</th>
+					<td><input id='red-u' type='number' step='0.0001' value=''></td>
+					<td><input id='green-u' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-u' type='number' step='0.0001' value=''></td>
+				</tr>
+				<tr>
+					<th>v'</th>
+					<td><input id='red-v' type='number' step='0.0001' value=''></td>
+					<td><input id='green-v' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-v' type='number' step='0.0001' value=''></td>
+				</tr>
+				<tr class='header'><th colspan='4'>Luminous flux</th></tr>
+				<tr>
+					<th>lm</th>
+					<td><input id='red-lum' type='number' step='0.0001' value=''></td>
+					<td><input id='green-lum' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-lum' type='number' step='0.0001' value=''></td>
+				</tr>
+				<tr class='header'><th colspan='4'>Level by distance</th></tr>
+				<tr>
+					<th>p1</th>
+					<td><input id='red-p1' type='number' step='0.0001' value=''></td>
+					<td><input id='green-p1' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-p1' type='number' step='0.0001' value=''></td>
+				</tr>
+				<tr>
+					<th>p2</th>
+					<td><input id='red-p2' type='number' step='0.0001' value=''></td>
+					<td><input id='green-p2' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-p2' type='number' step='0.0001' value=''></td>
+				</tr>
+				<tr>
+					<th>q1</th>
+					<td><input id='red-q1' type='number' step='0.0001' value=''></td>
+					<td><input id='green-q1' type='number' step='0.0001' value=''></td>
+					<td><input id='blue-q1' type='number' step='0.0001' value=''></td>
+				</tr>
+			</table>
+			<button id='settings-close-button' type='button'>
+				<svg class='lnr'><use xlink:href='#lnr-cross'></use></svg></button>
+			<button id='settings-save-button' type='button'>
+				<svg class='lnr'><use xlink:href='#lnr-checkmark-circle'></use></svg>
+			</button>
 		</div>
 	</div>
 </body>
 
 <script type='text/javascript'>
-	var onOff_ = '{{onOff_}}';
-	var L_ = '{{L_}}';
-	var u_ = '{{u_}}';
-	var v_ = '{{v_}}';
-	var T_ = '{{T_}}';
-	var debug = '{{debug}}';
-	if (debug) {
-		onOff_ = true;
-		L_ = 75;
-		u_ = 0.199;
-		v_ = 0.471;
-		T_ = -1;
-	}
-</script>
-
-<script type='text/javascript'>
 	var zoomLevel = 4;
+	var debug = '{{debug}}';
 	
 	var mainContainer = document.getElementById('main-container');
 	var onButton = document.getElementById('on-button');
 	var offButton = document.getElementById('off-button');
-	var settings = document.getElementById('settings');
-	var settingsButton = document.getElementById('settings-button');
-	var settingsCloseButton = document.getElementById('settings-close-button');
-	var settingsSaveButton = document.getElementById('settings-save-button');
+	var scheduleButton = document.getElementById('schedule-button');
+	
 	var dimming = document.getElementById('dimming');
 	var dimmingCursor = document.getElementById('dimming-cursor');
+	
 	var cie1976Ucs = document.getElementById('cie1976ucs');
 	var cie1976UcsCursor = document.getElementById('cie1976ucs-cursor');
 	var cie1976UcsZoom = document.getElementById('cie1976ucs-zoom');
 	var cie1976UcsZoomImage = document.getElementById('cie1976ucs-zoom-image');
+	
 	var colorTemperature = document.getElementById('color-temperature');
 	var colorTemperatureCursor = document.getElementById('color-temperature-cursor');
-	var mode = 'color';
-	if (T_ && !L_) mode = 'temperature';
 	
-	var ajax = function (url) {
+	var settings = document.getElementById('settings');
+	var settingsButton = document.getElementById('settings-button');
+	var settingsCloseButton = document.getElementById('settings-close-button');
+	var settingsSaveButton = document.getElementById('settings-save-button');
+	
+	var redU = document.getElementById('red-u');
+	var greenU = document.getElementById('green-u');
+	var blueU = document.getElementById('blue-u');
+	var redV = document.getElementById('red-v');
+	var greenV = document.getElementById('green-v');
+	var blueV = document.getElementById('blue-v');
+	
+	var redLum = document.getElementById('red-lum');
+	var greenLum = document.getElementById('green-lum');
+	var blueLum = document.getElementById('blue-lum');
+	
+	var redP1 = document.getElementById('red-p1');
+	var greenP1 = document.getElementById('green-p1');
+	var blueP1 = document.getElementById('blue-p1');
+	var redP2 = document.getElementById('red-p2');
+	var greenP2 = document.getElementById('green-p2');
+	var blueP2 = document.getElementById('blue-p2');
+	var redQ1 = document.getElementById('red-q1');
+	var greenQ1 = document.getElementById('green-q1');
+	var blueQ1 = document.getElementById('blue-q1');
+	
+	var ajax = function (url, callback) {
 		console.log('AJAX:', url);
+		
 		if (debug) return;
+		
 		var xhr = new XMLHttpRequest();
 		xhr.open('GET', url, true);
 		xhr.send();
 		xhr.onreadystatechange = function () {
 			if (xhr.readyState === 4) {
 				if (xhr.status === 200) {
-					console.log('Success:', url);
+					if (callback) {
+						callback(xhr.responseText);
+					}
 				} else {
 					console.log('Error:', xhr.responseText);
 				}
@@ -270,7 +362,6 @@
 			if (doAjax) ajax('/off');
 		}
 	};
-	setOnOff(onOff_);
 	
 	onButton.addEventListener('click', function () {
 		setOnOff(true, true);
@@ -286,9 +377,26 @@
 	};
 	
 	var saveSettings = function () {
-		var data = settings.querySelector('textarea').value;
-		data = data.replace(/\s/g, '');
-		ajax('/calibrate?data=' + data);
+		var url = '/calibrate?';
+		url += 'redU=' + redU.value;
+		url += '&redV=' + redV.value;
+		url += '&greenU=' + greenU.value;
+		url += '&greenV=' + greenV.value;
+		url += '&blueU=' + blueU.value;
+		url += '&blueV=' + blueV.value;
+		url += '&redLum=' + redLum.value;
+		url += '&greenLum=' + greenLum.value;
+		url += '&blueLum=' + blueLum.value;
+		url += '&redP1=' + redP1.value;
+		url += '&redP2=' + redP2.value;
+		url += '&redQ1=' + redQ1.value;
+		url += '&greenP1=' + greenP1.value;
+		url += '&greenP2=' + greenP2.value;
+		url += '&greenQ1=' + greenQ1.value;
+		url += '&blueP1=' + blueP1.value;
+		url += '&blueP2=' + blueP2.value;
+		url += '&blueQ1=' + blueQ1.value;
+		ajax(url);
 	};
 	
 	var closeSettings = function () {
@@ -302,6 +410,20 @@
 	settingsSaveButton.addEventListener('click', saveSettings);
 	
 	settingsCloseButton.addEventListener('click', closeSettings);
+	
+	var scheduleOn = function () {
+		if (scheduleButton.className.indexOf('active') === -1) {
+			scheduleButton.className += ' active';
+		}
+	};
+	
+	var scheduleOff = function () {
+		scheduleButton.className = onButton.className.replace( /(?:^|\s)active(?!\S)/g , '' );
+	};
+	
+	scheduleButton.addEventListener('click', function (ev) {
+		scheduleOn();
+	});
 	
 	var setDimming = function (L, doAjax) {
 		L_ = L;
@@ -337,6 +459,7 @@
 		cie1976UcsZoomImage.style.transform = 'scale(' + zoomLevel + ') translate(' + x + 'px, ' + y + 'px)';
 		
 		unsetColorTemperature();
+		scheduleOff();
 		if (doAjax) ajax('/cie1976Ucs?L=' + L_ + '&u=' + u + '&v=' + v);
 	};
 	
@@ -366,6 +489,7 @@
 		mode = 'temperature';
 		colorTemperatureCursor.style.top = ((1 - Math.pow(((T - 1000) / 9000),0.5)) * 100) + '%';
 		unsetCie1976Ucs();
+		scheduleOff();
 		if (doAjax) ajax('/colorTemperature?L=' + L_ + '&T=' + T_);
 	};
 	
@@ -380,7 +504,75 @@
 	});
 	
 	window.onload = function () {
-		setCie1976Ucs(u_, v_, false);
+		if (debug) {
+			var onOff_ = true;
+			var L_ = 75;
+			var u_ = 0.199;
+			var v_ = 0.471;
+			
+			var T_ = -1;
+			
+			redU.value = 0.5535;
+			greenU.value = 0.0373;
+			blueU.value = 0.1679;
+			redV.value = 0.5170;
+			greenV.value = 0.5856;
+			blueV.value = 0.1153;
+			
+			redLum.value = 160;
+			greenLum.value = 320;
+			blueLum.value = 240;
+			
+			redP1.value = 2.9658;
+			greenP1.value = 1.3587;
+			blueP1.value = -0.2121;
+			redP2.value = 0.0;
+			greenP2.value = 0.0;
+			blueP2.value = 0.2121;
+			redQ1.value = 1.9658;
+			greenQ1.value = 0.3587;
+			blueQ1.value = 0.2121;
+			
+		} else {
+			var onOff_ = '{{onOff}}';
+			var L_ = '{{L}}';
+			var u_ = '{{u}}';
+			var v_ = '{{v}}';
+			var T_ = '{{T}}';
+			
+			redU.value = '{{redU}}';
+			greenU.value = '{{greenU}}';
+			blueU.value = '{{blueU}}';
+			redV.value = '{{redV}}';
+			greenV.value = '{{greenV}}';
+			blueV.value = '{{blueV}}';
+			
+			redLum.value = '{{redLum}}';
+			greenLum.value = '{{greenLum}}';
+			blueLum.value = '{{blueLum}}';
+			
+			redP1.value = '{{redP1}}';
+			greenP1.value = '{{greenP1}}';
+			blueP1.value = '{{blueP1}}';
+			redP2.value = '{{redP2}}';
+			greenP2.value = '{{greenP2}}';
+			blueP2.value = '{{blueP2}}';
+			redQ1.value = '{{redQ1}}';
+			greenQ1.value = '{{greenQ1}}';
+			blueQ1.value = '{{blueQ1}}';
+		}
+		
+		var mode;
+		if (T_ > 0) {
+			mode = 'temperature';
+			setColorTemperature(T_, false);
+		} else {
+			mode = 'color';
+			setCie1976Ucs(u_, v_, false);
+		}
+		
+		setOnOff(onOff_, false);
+		
 		setDimming(L_, false);
 	};
 

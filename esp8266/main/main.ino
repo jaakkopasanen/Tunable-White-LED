@@ -4,6 +4,7 @@
 #include <ESP8266WebServer.h>
 #include <WiFiManager.h>
 #include <cmath>
+#include <EEPROM.h>
 
 // GPIO settings
 const int redPin_    = 15; //12
@@ -14,6 +15,7 @@ const int w2Pin_     = 4;
 const int led1Pin_   = 5;
 const int led2Pin_   = 1;
 const int pwmRange_  = 1023;
+const uint16_t calibrationAddress = 0;
 
 // Index.html
 // Minify, replace double quotes with single quotes, escape backlashes in regexes
@@ -37,8 +39,29 @@ struct RGB {
   float B;
 };
 
+struct Calibration {
+  // Luminous fluxes
+  float redLum;
+  float greenLum;
+  float blueLum;
+  float maxLum;
+  
+  // LED u', v' coordinates
+  Luv redUv;
+  Luv greenUv;
+  Luv blueUv;
+  
+  // Mixing fit coefficients
+  float redToGreenFit[3];
+  float greenToBlueFit[3];
+  float blueToRedFit[3];
+
+  // Checksum
+  uint32_t crc32;
+};
+
 // Is the light on?
-bool onOff_ = false;
+bool onOff_;
 
 // Raw PWM values
 RGB raw_;
@@ -49,26 +72,8 @@ Luv luv_;
 // Correlated color temperature (in Kelvins)
 int T_;
 
-
-// Calibration coefficients with default values
-
-// Luminous fluxes
-float redLum_ = 0.5;
-float greenLum_ = 1.0;
-float blueLum_ = 0.75;
-float maxLum_ = redLum_ + greenLum_ + blueLum_;
-
-// LED u', v' coordinates
-Luv redUv_ = {100, 0.5535, 0.5170};
-Luv greenUv_ = {100, 0.0373, 0.5856};
-Luv blueUv_ = {100, 0.1679, 0.1153};
-
-// Mixing fit coefficients
-float redToGreenFit_[] = {2.9658, 0.0, 1.9658};
-float greenToBlueFit_[] = {1.3587, 0.0, 0.3587};
-float blueToRedFit_[] = {-0.2121, 0.2121, 0.2121};
-
-
+// Calibration data
+Calibration cal_;
 
 /**
  * Utility functions
@@ -79,29 +84,29 @@ float blueToRedFit_[] = {-0.2121, 0.2121, 0.2121};
  */
 float findCoefficient (const Luv PT, const Luv P0, const Luv P1, const Luv P2, const float rightHandFit[3], const float leftHandFit[3]) {
 
-  double PTu = PT.u;
-  double PTv = PT.v;
-  double P0u = P0.u;
-  double P0v = P0.v;
-  double P1u = P1.u;
-  double P1v = P1.v;
-  double P2u = P2.u;
-  double P2v = P2.v;
-  double Rp1 = rightHandFit[0];
-  double Rp2 = rightHandFit[1];
-  double Rq1 = rightHandFit[2];
-  double Lp1 = leftHandFit[0];
-  double Lp2 = leftHandFit[1];
-  double Lq1 = leftHandFit[2];
+  float PTu = PT.u;
+  float PTv = PT.v;
+  float P0u = P0.u;
+  float P0v = P0.v;
+  float P1u = P1.u;
+  float P1v = P1.v;
+  float P2u = P2.u;
+  float P2v = P2.v;
+  float Rp1 = rightHandFit[0];
+  float Rp2 = rightHandFit[1];
+  float Rq1 = rightHandFit[2];
+  float Lp1 = leftHandFit[0];
+  float Lp2 = leftHandFit[1];
+  float Lq1 = leftHandFit[2];
 
-  double dR;
+  float dR;
   if (Lp1 < 0) {
     dR = (sqrt((P0u*P0u)*(P1v*P1v)+(P1u*P1u)*(P0v*P0v)+(P0u*P0u)*(PTv*PTv)+(P0v*P0v)*(PTu*PTu)+(P1u*P1u)*(PTv*PTv)+(P1v*P1v)*(PTu*PTu)-Lp1*(P0u*P0u)*(P1v*P1v)*2.0-Lp1*(P1u*P1u)*(P0v*P0v)*2.0-Lp2*(P0u*P0u)*(P1v*P1v)*2.0-Lp2*(P1u*P1u)*(P0v*P0v)*2.0+Lq1*(P0u*P0u)*(P1v*P1v)*2.0+Lq1*(P1u*P1u)*(P0v*P0v)*2.0-Lp1*(P0u*P0u)*(PTv*PTv)*2.0-Lp1*(P0v*P0v)*(PTu*PTu)*2.0-Lp2*(P0u*P0u)*(PTv*PTv)*4.0-Lp2*(P0v*P0v)*(PTu*PTu)*4.0+Lq1*(P0u*P0u)*(PTv*PTv)*2.0+Lq1*(P0v*P0v)*(PTu*PTu)*2.0+Lq1*(P1u*P1u)*(PTv*PTv)*2.0+Lq1*(P1v*P1v)*(PTu*PTu)*2.0+(Lp1*Lp1)*(P0u*P0u)*(P1v*P1v)+(Lp1*Lp1)*(P1u*P1u)*(P0v*P0v)+(Lp2*Lp2)*(P0u*P0u)*(P1v*P1v)+(Lp2*Lp2)*(P1u*P1u)*(P0v*P0v)+(Lp1*Lp1)*(P1u*P1u)*(P2v*P2v)+(Lp1*Lp1)*(P2u*P2u)*(P1v*P1v)+(Lp2*Lp2)*(P0u*P0u)*(P2v*P2v)+(Lp2*Lp2)*(P2u*P2u)*(P0v*P0v)+(Lp2*Lp2)*(P1u*P1u)*(P2v*P2v)+(Lp2*Lp2)*(P2u*P2u)*(P1v*P1v)+(Lq1*Lq1)*(P0u*P0u)*(P1v*P1v)+(Lq1*Lq1)*(P1u*P1u)*(P0v*P0v)+(Lp1*Lp1)*(P0u*P0u)*(PTv*PTv)+(Lp1*Lp1)*(P0v*P0v)*(PTu*PTu)+(Lp1*Lp1)*(P2u*P2u)*(PTv*PTv)+(Lp1*Lp1)*(P2v*P2v)*(PTu*PTu)+(Lq1*Lq1)*(P0u*P0u)*(PTv*PTv)+(Lq1*Lq1)*(P0v*P0v)*(PTu*PTu)+(Lq1*Lq1)*(P1u*P1u)*(PTv*PTv)+(Lq1*Lq1)*(P1v*P1v)*(PTu*PTu)-P0u*P1u*(PTv*PTv)*2.0-P0u*(P1v*P1v)*PTu*2.0-P1u*(P0v*P0v)*PTu*2.0-P0v*P1v*(PTu*PTu)*2.0-(P0u*P0u)*P1v*PTv*2.0-(P1u*P1u)*P0v*PTv*2.0+Lp1*Lp2*(P0u*P0u)*(P1v*P1v)*2.0+Lp1*Lp2*(P1u*P1u)*(P0v*P0v)*2.0+Lp1*Lp2*(P1u*P1u)*(P2v*P2v)*2.0+Lp1*Lp2*(P2u*P2u)*(P1v*P1v)*2.0-Lp1*Lq1*(P0u*P0u)*(P1v*P1v)*2.0-Lp1*Lq1*(P1u*P1u)*(P0v*P0v)*2.0-Lp2*Lq1*(P0u*P0u)*(P1v*P1v)*2.0-Lp2*Lq1*(P1u*P1u)*(P0v*P0v)*2.0+Lp1*Lq1*(P0u*P0u)*(PTv*PTv)*2.0+Lp1*Lq1*(P0v*P0v)*(PTu*PTu)*2.0-(Lp1*Lp1)*P0u*P2u*(P1v*P1v)*2.0-(Lp2*Lp2)*P0u*P1u*(P2v*P2v)*2.0-(Lp2*Lp2)*P0u*P2u*(P1v*P1v)*2.0-(Lp2*Lp2)*P1u*P2u*(P0v*P0v)*2.0-(Lp1*Lp1)*(P1u*P1u)*P0v*P2v*2.0-(Lp2*Lp2)*(P0u*P0u)*P1v*P2v*2.0-(Lp2*Lp2)*(P1u*P1u)*P0v*P2v*2.0-(Lp2*Lp2)*(P2u*P2u)*P0v*P1v*2.0-(Lp1*Lp1)*P1u*(P0v*P0v)*PTu*2.0-(Lp1*Lp1)*P0u*P2u*(PTv*PTv)*2.0-(Lp1*Lp1)*P1u*(P2v*P2v)*PTu*2.0-(Lp1*Lp1)*(P0u*P0u)*P1v*PTv*2.0-(Lp1*Lp1)*P0v*P2v*(PTu*PTu)*2.0-(Lp1*Lp1)*(P2u*P2u)*P1v*PTv*2.0-(Lq1*Lq1)*P0u*P1u*(PTv*PTv)*2.0-(Lq1*Lq1)*P0u*(P1v*P1v)*PTu*2.0-(Lq1*Lq1)*P1u*(P0v*P0v)*PTu*2.0-(Lq1*Lq1)*P0v*P1v*(PTu*PTu)*2.0-(Lq1*Lq1)*(P0u*P0u)*P1v*PTv*2.0-(Lq1*Lq1)*(P1u*P1u)*P0v*PTv*2.0-P0u*P1u*P0v*P1v*2.0+P0u*P1u*P0v*PTv*2.0+P0u*P0v*P1v*PTu*2.0+P0u*P1u*P1v*PTv*2.0+P1u*P0v*P1v*PTu*2.0-P0u*P0v*PTu*PTv*2.0+P0u*P1v*PTu*PTv*2.0+P1u*P0v*PTu*PTv*2.0-P1u*P1v*PTu*PTv*2.0+Lp1*P0u*P2u*(P1v*P1v)*2.0+Lp2*P0u*P2u*(P1v*P1v)*2.0-Lp2*P1u*P2u*(P0v*P0v)*2.0+Lp1*(P1u*P1u)*P0v*P2v*2.0-Lp2*(P0u*P0u)*P1v*P2v*2.0+Lp2*(P1u*P1u)*P0v*P2v*2.0+Lp1*P0u*P1u*(PTv*PTv)*2.0+Lp1*P0u*(P1v*P1v)*PTu*2.0+Lp1*P1u*(P0v*P0v)*PTu*4.0+Lp1*P0u*P2u*(PTv*PTv)*2.0+Lp2*P0u*P1u*(PTv*PTv)*4.0+Lp2*P0u*(P1v*P1v)*PTu*2.0+Lp2*P1u*(P0v*P0v)*PTu*6.0-Lp1*P1u*P2u*(PTv*PTv)*2.0-Lp1*P2u*(P1v*P1v)*PTu*2.0+Lp2*P0u*P2u*(PTv*PTv)*4.0+Lp2*P2u*(P0v*P0v)*PTu*2.0-Lp2*P1u*P2u*(PTv*PTv)*4.0-Lp2*P2u*(P1v*P1v)*PTu*2.0+Lp1*P0v*P1v*(PTu*PTu)*2.0+Lp1*(P0u*P0u)*P1v*PTv*4.0+Lp1*(P1u*P1u)*P0v*PTv*2.0+Lp1*P0v*P2v*(PTu*PTu)*2.0+Lp2*P0v*P1v*(PTu*PTu)*4.0+Lp2*(P0u*P0u)*P1v*PTv*6.0+Lp2*(P1u*P1u)*P0v*PTv*2.0-Lp1*P1v*P2v*(PTu*PTu)*2.0-Lp1*(P1u*P1u)*P2v*PTv*2.0+Lp2*P0v*P2v*(PTu*PTu)*4.0+Lp2*(P0u*P0u)*P2v*PTv*2.0-Lp2*P1v*P2v*(PTu*PTu)*4.0-Lp2*(P1u*P1u)*P2v*PTv*2.0-Lq1*P0u*P1u*(PTv*PTv)*4.0-Lq1*P0u*(P1v*P1v)*PTu*4.0-Lq1*P1u*(P0v*P0v)*PTu*4.0-Lq1*P0v*P1v*(PTu*PTu)*4.0-Lq1*(P0u*P0u)*P1v*PTv*4.0-Lq1*(P1u*P1u)*P0v*PTv*4.0-Lp1*Lp2*P0u*P1u*(P2v*P2v)*2.0-Lp1*Lp2*P0u*P2u*(P1v*P1v)*4.0-Lp1*Lp2*P1u*P2u*(P0v*P0v)*2.0-Lp1*Lp2*(P0u*P0u)*P1v*P2v*2.0-Lp1*Lp2*(P1u*P1u)*P0v*P2v*4.0-Lp1*Lp2*(P2u*P2u)*P0v*P1v*2.0+Lp1*Lq1*P0u*P2u*(P1v*P1v)*2.0+Lp1*Lq1*P1u*P2u*(P0v*P0v)*4.0+Lp2*Lq1*P0u*P2u*(P1v*P1v)*2.0+Lp2*Lq1*P1u*P2u*(P0v*P0v)*2.0+Lp1*Lq1*(P0u*P0u)*P1v*P2v*4.0+Lp1*Lq1*(P1u*P1u)*P0v*P2v*2.0+Lp2*Lq1*(P0u*P0u)*P1v*P2v*2.0+Lp2*Lq1*(P1u*P1u)*P0v*P2v*2.0-Lp1*Lp2*P1u*(P0v*P0v)*PTu*2.0+Lp1*Lp2*P0u*(P2v*P2v)*PTu*2.0+Lp1*Lp2*P2u*(P0v*P0v)*PTu*2.0-Lp1*Lp2*P1u*(P2v*P2v)*PTu*2.0-Lp1*Lp2*(P0u*P0u)*P1v*PTv*2.0+Lp1*Lp2*(P0u*P0u)*P2v*PTv*2.0+Lp1*Lp2*(P2u*P2u)*P0v*PTv*2.0-Lp1*Lp2*(P2u*P2u)*P1v*PTv*2.0-Lp1*Lq1*P0u*P1u*(PTv*PTv)*2.0+Lp1*Lq1*P0u*(P1v*P1v)*PTu*2.0-Lp1*Lq1*P0u*P2u*(PTv*PTv)*2.0-Lp1*Lq1*P2u*(P0v*P0v)*PTu*4.0+Lp2*Lq1*P0u*(P1v*P1v)*PTu*2.0+Lp2*Lq1*P1u*(P0v*P0v)*PTu*2.0+Lp1*Lq1*P1u*P2u*(PTv*PTv)*2.0-Lp1*Lq1*P2u*(P1v*P1v)*PTu*2.0-Lp2*Lq1*P2u*(P0v*P0v)*PTu*2.0-Lp2*Lq1*P2u*(P1v*P1v)*PTu*2.0-Lp1*Lq1*P0v*P1v*(PTu*PTu)*2.0+Lp1*Lq1*(P1u*P1u)*P0v*PTv*2.0-Lp1*Lq1*P0v*P2v*(PTu*PTu)*2.0-Lp1*Lq1*(P0u*P0u)*P2v*PTv*4.0+Lp2*Lq1*(P0u*P0u)*P1v*PTv*2.0+Lp2*Lq1*(P1u*P1u)*P0v*PTv*2.0+Lp1*Lq1*P1v*P2v*(PTu*PTu)*2.0-Lp1*Lq1*(P1u*P1u)*P2v*PTv*2.0-Lp2*Lq1*(P0u*P0u)*P2v*PTv*2.0-Lp2*Lq1*(P1u*P1u)*P2v*PTv*2.0-(Lp1*Lp1)*P0u*P1u*P0v*P1v*2.0-(Lp2*Lp2)*P0u*P1u*P0v*P1v*2.0+(Lp1*Lp1)*P0u*P1u*P1v*P2v*2.0+(Lp1*Lp1)*P1u*P2u*P0v*P1v*2.0+(Lp2*Lp2)*P0u*P1u*P0v*P2v*2.0+(Lp2*Lp2)*P0u*P2u*P0v*P1v*2.0+(Lp2*Lp2)*P0u*P1u*P1v*P2v*2.0-(Lp2*Lp2)*P0u*P2u*P0v*P2v*2.0+(Lp2*Lp2)*P1u*P2u*P0v*P1v*2.0-(Lp1*Lp1)*P1u*P2u*P1v*P2v*2.0+(Lp2*Lp2)*P0u*P2u*P1v*P2v*2.0+(Lp2*Lp2)*P1u*P2u*P0v*P2v*2.0-(Lp2*Lp2)*P1u*P2u*P1v*P2v*2.0-(Lq1*Lq1)*P0u*P1u*P0v*P1v*2.0+(Lp1*Lp1)*P0u*P1u*P0v*PTv*2.0+(Lp1*Lp1)*P0u*P0v*P1v*PTu*2.0-(Lp1*Lp1)*P0u*P1u*P2v*PTv*2.0+(Lp1*Lp1)*P0u*P2u*P1v*PTv*4.0-(Lp1*Lp1)*P0u*P1v*P2v*PTu*2.0-(Lp1*Lp1)*P1u*P2u*P0v*PTv*2.0+(Lp1*Lp1)*P1u*P0v*P2v*PTu*4.0-(Lp1*Lp1)*P2u*P0v*P1v*PTu*2.0+(Lp1*Lp1)*P1u*P2u*P2v*PTv*2.0+(Lp1*Lp1)*P2u*P1v*P2v*PTu*2.0+(Lq1*Lq1)*P0u*P1u*P0v*PTv*2.0+(Lq1*Lq1)*P0u*P0v*P1v*PTu*2.0+(Lq1*Lq1)*P0u*P1u*P1v*PTv*2.0+(Lq1*Lq1)*P1u*P0v*P1v*PTu*2.0-(Lp1*Lp1)*P0u*P0v*PTu*PTv*2.0+(Lp1*Lp1)*P0u*P2v*PTu*PTv*2.0+(Lp1*Lp1)*P2u*P0v*PTu*PTv*2.0-(Lp1*Lp1)*P2u*P2v*PTu*PTv*2.0-(Lq1*Lq1)*P0u*P0v*PTu*PTv*2.0+(Lq1*Lq1)*P0u*P1v*PTu*PTv*2.0+(Lq1*Lq1)*P1u*P0v*PTu*PTv*2.0-(Lq1*Lq1)*P1u*P1v*PTu*PTv*2.0+Lp1*P0u*P1u*P0v*P1v*4.0+Lp2*P0u*P1u*P0v*P1v*4.0-Lp1*P0u*P1u*P1v*P2v*2.0-Lp1*P1u*P2u*P0v*P1v*2.0+Lp2*P0u*P1u*P0v*P2v*2.0+Lp2*P0u*P2u*P0v*P1v*2.0-Lp2*P0u*P1u*P1v*P2v*2.0-Lp2*P1u*P2u*P0v*P1v*2.0-Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*P0u*P1u*P0v*PTv*4.0-Lp1*P0u*P0v*P1v*PTu*4.0-Lp1*P0u*P1u*P1v*PTv*2.0-Lp1*P1u*P0v*P1v*PTu*2.0-Lp2*P0u*P1u*P0v*PTv*6.0-Lp2*P0u*P0v*P1v*PTu*6.0+Lp1*P0u*P1u*P2v*PTv*2.0-Lp1*P0u*P2u*P1v*PTv*4.0+Lp1*P0u*P1v*P2v*PTu*2.0+Lp1*P1u*P2u*P0v*PTv*2.0-Lp1*P1u*P0v*P2v*PTu*4.0+Lp1*P2u*P0v*P1v*PTu*2.0-Lp2*P0u*P1u*P1v*PTv*2.0-Lp2*P0u*P2u*P0v*PTv*2.0-Lp2*P0u*P0v*P2v*PTu*2.0-Lp2*P1u*P0v*P1v*PTu*2.0+Lp1*P1u*P2u*P1v*PTv*2.0+Lp1*P1u*P1v*P2v*PTu*2.0-Lp2*P0u*P2u*P1v*PTv*6.0+Lp2*P0u*P1v*P2v*PTu*6.0+Lp2*P1u*P2u*P0v*PTv*6.0-Lp2*P1u*P0v*P2v*PTu*6.0+Lp2*P1u*P2u*P1v*PTv*2.0+Lp2*P1u*P1v*P2v*PTu*2.0+Lq1*P0u*P1u*P0v*PTv*4.0+Lq1*P0u*P0v*P1v*PTu*4.0+Lq1*P0u*P1u*P1v*PTv*4.0+Lq1*P1u*P0v*P1v*PTu*4.0+Lp1*P0u*P0v*PTu*PTv*4.0-Lp1*P0u*P1v*PTu*PTv*2.0-Lp1*P1u*P0v*PTu*PTv*2.0+Lp2*P0u*P0v*PTu*PTv*8.0-Lp1*P0u*P2v*PTu*PTv*2.0-Lp1*P2u*P0v*PTu*PTv*2.0-Lp2*P0u*P1v*PTu*PTv*4.0-Lp2*P1u*P0v*PTu*PTv*4.0+Lp1*P1u*P2v*PTu*PTv*2.0+Lp1*P2u*P1v*PTu*PTv*2.0-Lp2*P0u*P2v*PTu*PTv*4.0-Lp2*P2u*P0v*PTu*PTv*4.0+Lp2*P1u*P2v*PTu*PTv*4.0+Lp2*P2u*P1v*PTu*PTv*4.0-Lq1*P0u*P0v*PTu*PTv*4.0+Lq1*P0u*P1v*PTu*PTv*4.0+Lq1*P1u*P0v*PTu*PTv*4.0-Lq1*P1u*P1v*PTu*PTv*4.0-Lp1*Lp2*P0u*P1u*P0v*P1v*4.0+Lp1*Lp2*P0u*P1u*P0v*P2v*2.0+Lp1*Lp2*P0u*P2u*P0v*P1v*2.0+Lp1*Lp2*P0u*P1u*P1v*P2v*4.0+Lp1*Lp2*P1u*P2u*P0v*P1v*4.0+Lp1*Lp2*P0u*P2u*P1v*P2v*2.0+Lp1*Lp2*P1u*P2u*P0v*P2v*2.0-Lp1*Lp2*P1u*P2u*P1v*P2v*4.0+Lp1*Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*Lq1*P0u*P1u*P0v*P2v*4.0-Lp1*Lq1*P0u*P2u*P0v*P1v*4.0+Lp2*Lq1*P0u*P1u*P0v*P1v*4.0-Lp1*Lq1*P0u*P1u*P1v*P2v*2.0-Lp1*Lq1*P1u*P2u*P0v*P1v*2.0-Lp2*Lq1*P0u*P1u*P0v*P2v*2.0-Lp2*Lq1*P0u*P2u*P0v*P1v*2.0-Lp2*Lq1*P0u*P1u*P1v*P2v*2.0-Lp2*Lq1*P1u*P2u*P0v*P1v*2.0+Lp1*Lp2*P0u*P1u*P0v*PTv*2.0+Lp1*Lp2*P0u*P0v*P1v*PTu*2.0-Lp1*Lp2*P0u*P2u*P0v*PTv*2.0-Lp1*Lp2*P0u*P0v*P2v*PTu*2.0-Lp1*Lp2*P0u*P1u*P2v*PTv*2.0+Lp1*Lp2*P0u*P2u*P1v*PTv*4.0-Lp1*Lp2*P0u*P1v*P2v*PTu*2.0-Lp1*Lp2*P1u*P2u*P0v*PTv*2.0+Lp1*Lp2*P1u*P0v*P2v*PTu*4.0-Lp1*Lp2*P2u*P0v*P1v*PTu*2.0-Lp1*Lp2*P0u*P2u*P2v*PTv*2.0-Lp1*Lp2*P2u*P0v*P2v*PTu*2.0+Lp1*Lp2*P1u*P2u*P2v*PTv*2.0+Lp1*Lp2*P2u*P1v*P2v*PTu*2.0-Lp1*Lq1*P0u*P1u*P1v*PTv*2.0+Lp1*Lq1*P0u*P2u*P0v*PTv*4.0+Lp1*Lq1*P0u*P0v*P2v*PTu*4.0-Lp1*Lq1*P1u*P0v*P1v*PTu*2.0-Lp2*Lq1*P0u*P1u*P0v*PTv*2.0-Lp2*Lq1*P0u*P0v*P1v*PTu*2.0+Lp1*Lq1*P0u*P1u*P2v*PTv*6.0-Lp1*Lq1*P0u*P1v*P2v*PTu*6.0-Lp1*Lq1*P1u*P2u*P0v*PTv*6.0+Lp1*Lq1*P2u*P0v*P1v*PTu*6.0-Lp2*Lq1*P0u*P1u*P1v*PTv*2.0+Lp2*Lq1*P0u*P2u*P0v*PTv*2.0+Lp2*Lq1*P0u*P0v*P2v*PTu*2.0-Lp2*Lq1*P1u*P0v*P1v*PTu*2.0+Lp1*Lq1*P1u*P2u*P1v*PTv*2.0+Lp1*Lq1*P1u*P1v*P2v*PTu*2.0+Lp2*Lq1*P0u*P1u*P2v*PTv*4.0-Lp2*Lq1*P0u*P2u*P1v*PTv*2.0-Lp2*Lq1*P0u*P1v*P2v*PTu*2.0-Lp2*Lq1*P1u*P2u*P0v*PTv*2.0-Lp2*Lq1*P1u*P0v*P2v*PTu*2.0+Lp2*Lq1*P2u*P0v*P1v*PTu*4.0+Lp2*Lq1*P1u*P2u*P1v*PTv*2.0+Lp2*Lq1*P1u*P1v*P2v*PTu*2.0-Lp1*Lq1*P0u*P0v*PTu*PTv*4.0+Lp1*Lq1*P0u*P1v*PTu*PTv*2.0+Lp1*Lq1*P1u*P0v*PTu*PTv*2.0+Lp1*Lq1*P0u*P2v*PTu*PTv*2.0+Lp1*Lq1*P2u*P0v*PTu*PTv*2.0-Lp1*Lq1*P1u*P2v*PTu*PTv*2.0-Lp1*Lq1*P2u*P1v*PTu*PTv*2.0)*(1.0/2.0)+P0u*P1v*(1.0/2.0)-P1u*P0v*(1.0/2.0)-P0u*PTv*(1.0/2.0)+P0v*PTu*(1.0/2.0)+P1u*PTv*(1.0/2.0)-P1v*PTu*(1.0/2.0)-Lp1*P0u*P1v*(1.0/2.0)+Lp1*P1u*P0v*(1.0/2.0)+Lp1*P0u*P2v-Lp1*P2u*P0v-Lp2*P0u*P1v*(1.0/2.0)+Lp2*P1u*P0v*(1.0/2.0)-Lp1*P1u*P2v*(1.0/2.0)+Lp1*P2u*P1v*(1.0/2.0)+Lp2*P0u*P2v*(1.0/2.0)-Lp2*P2u*P0v*(1.0/2.0)-Lp2*P1u*P2v*(1.0/2.0)+Lp2*P2u*P1v*(1.0/2.0)+Lq1*P0u*P1v*(1.0/2.0)-Lq1*P1u*P0v*(1.0/2.0)-Lp1*P0u*PTv*(1.0/2.0)+Lp1*P0v*PTu*(1.0/2.0)+Lp1*P2u*PTv*(1.0/2.0)-Lp1*P2v*PTu*(1.0/2.0)-Lq1*P0u*PTv*(1.0/2.0)+Lq1*P0v*PTu*(1.0/2.0)+Lq1*P1u*PTv*(1.0/2.0)-Lq1*P1v*PTu*(1.0/2.0))/(P0u*P1v-P1u*P0v-P0u*PTv+P0v*PTu+P1u*PTv-P1v*PTu-Lp1*P0u*P1v+Lp1*P1u*P0v+Lp1*P0u*P2v-Lp1*P2u*P0v-Lp1*P1u*P2v+Lp1*P2u*P1v);
   } else {
     dR = 1.0 - (sqrt(Lp1*Lp1*P0u*P0u*P2v*P2v - 2*Lp1*Lp1*P0u*P0u*P2v*PTv + Lp1*Lp1*P0u*P0u*PTv*PTv - 2*Lp1*Lp1*P0u*P2u*P0v*P2v + 2*Lp1*Lp1*P0u*P2u*P0v*PTv + 2*Lp1*Lp1*P0u*P2u*P2v*PTv - 2*Lp1*Lp1*P0u*P2u*PTv*PTv + 2*Lp1*Lp1*P0u*P0v*P2v*PTu - 2*Lp1*Lp1*P0u*P0v*PTu*PTv - 2*Lp1*Lp1*P0u*P2v*P2v*PTu + 2*Lp1*Lp1*P0u*P2v*PTu*PTv + Lp1*Lp1*P2u*P2u*P0v*P0v - 2*Lp1*Lp1*P2u*P2u*P0v*PTv + Lp1*Lp1*P2u*P2u*PTv*PTv - 2*Lp1*Lp1*P2u*P0v*P0v*PTu + 2*Lp1*Lp1*P2u*P0v*P2v*PTu + 2*Lp1*Lp1*P2u*P0v*PTu*PTv - 2*Lp1*Lp1*P2u*P2v*PTu*PTv + Lp1*Lp1*P0v*P0v*PTu*PTu - 2*Lp1*Lp1*P0v*P2v*PTu*PTu + Lp1*Lp1*P2v*P2v*PTu*PTu - 2*Lp1*Lp2*P0u*P0u*P1v*P2v + 2*Lp1*Lp2*P0u*P0u*P1v*PTv + 2*Lp1*Lp2*P0u*P0u*P2v*P2v - 2*Lp1*Lp2*P0u*P0u*P2v*PTv + 2*Lp1*Lp2*P0u*P1u*P0v*P2v - 2*Lp1*Lp2*P0u*P1u*P0v*PTv - 2*Lp1*Lp2*P0u*P1u*P2v*P2v + 2*Lp1*Lp2*P0u*P1u*P2v*PTv + 2*Lp1*Lp2*P0u*P2u*P0v*P1v - 4*Lp1*Lp2*P0u*P2u*P0v*P2v + 2*Lp1*Lp2*P0u*P2u*P0v*PTv + 2*Lp1*Lp2*P0u*P2u*P1v*P2v - 4*Lp1*Lp2*P0u*P2u*P1v*PTv + 2*Lp1*Lp2*P0u*P2u*P2v*PTv - 2*Lp1*Lp2*P0u*P0v*P1v*PTu + 2*Lp1*Lp2*P0u*P0v*P2v*PTu + 2*Lp1*Lp2*P0u*P1v*P2v*PTu - 2*Lp1*Lp2*P0u*P2v*P2v*PTu - 2*Lp1*Lp2*P1u*P2u*P0v*P0v + 2*Lp1*Lp2*P1u*P2u*P0v*P2v + 2*Lp1*Lp2*P1u*P2u*P0v*PTv - 2*Lp1*Lp2*P1u*P2u*P2v*PTv + 2*Lp1*Lp2*P1u*P0v*P0v*PTu - 4*Lp1*Lp2*P1u*P0v*P2v*PTu + 2*Lp1*Lp2*P1u*P2v*P2v*PTu + 2*Lp1*Lp2*P2u*P2u*P0v*P0v - 2*Lp1*Lp2*P2u*P2u*P0v*P1v - 2*Lp1*Lp2*P2u*P2u*P0v*PTv + 2*Lp1*Lp2*P2u*P2u*P1v*PTv - 2*Lp1*Lp2*P2u*P0v*P0v*PTu + 2*Lp1*Lp2*P2u*P0v*P1v*PTu + 2*Lp1*Lp2*P2u*P0v*P2v*PTu - 2*Lp1*Lp2*P2u*P1v*P2v*PTu - 2*Lp1*Lq1*P0u*P0u*P1v*P2v + 2*Lp1*Lq1*P0u*P0u*P1v*PTv + 2*Lp1*Lq1*P0u*P0u*P2v*PTv - 2*Lp1*Lq1*P0u*P0u*PTv*PTv + 2*Lp1*Lq1*P0u*P1u*P0v*P2v - 2*Lp1*Lq1*P0u*P1u*P0v*PTv - 2*Lp1*Lq1*P0u*P1u*P2v*PTv + 2*Lp1*Lq1*P0u*P1u*PTv*PTv + 2*Lp1*Lq1*P0u*P2u*P0v*P1v - 2*Lp1*Lq1*P0u*P2u*P0v*PTv - 2*Lp1*Lq1*P0u*P2u*P1v*PTv + 2*Lp1*Lq1*P0u*P2u*PTv*PTv - 2*Lp1*Lq1*P0u*P0v*P1v*PTu - 2*Lp1*Lq1*P0u*P0v*P2v*PTu + 4*Lp1*Lq1*P0u*P0v*PTu*PTv + 4*Lp1*Lq1*P0u*P1v*P2v*PTu - 2*Lp1*Lq1*P0u*P1v*PTu*PTv - 2*Lp1*Lq1*P0u*P2v*PTu*PTv - 2*Lp1*Lq1*P1u*P2u*P0v*P0v + 4*Lp1*Lq1*P1u*P2u*P0v*PTv - 2*Lp1*Lq1*P1u*P2u*PTv*PTv + 2*Lp1*Lq1*P1u*P0v*P0v*PTu - 2*Lp1*Lq1*P1u*P0v*P2v*PTu - 2*Lp1*Lq1*P1u*P0v*PTu*PTv + 2*Lp1*Lq1*P1u*P2v*PTu*PTv + 2*Lp1*Lq1*P2u*P0v*P0v*PTu - 2*Lp1*Lq1*P2u*P0v*P1v*PTu - 2*Lp1*Lq1*P2u*P0v*PTu*PTv + 2*Lp1*Lq1*P2u*P1v*PTu*PTv - 2*Lp1*Lq1*P0v*P0v*PTu*PTu + 2*Lp1*Lq1*P0v*P1v*PTu*PTu + 2*Lp1*Lq1*P0v*P2v*PTu*PTu - 2*Lp1*Lq1*P1v*P2v*PTu*PTu + Lp2*Lp2*P0u*P0u*P1v*P1v - 2*Lp2*Lp2*P0u*P0u*P1v*P2v + Lp2*Lp2*P0u*P0u*P2v*P2v - 2*Lp2*Lp2*P0u*P1u*P0v*P1v + 2*Lp2*Lp2*P0u*P1u*P0v*P2v + 2*Lp2*Lp2*P0u*P1u*P1v*P2v - 2*Lp2*Lp2*P0u*P1u*P2v*P2v + 2*Lp2*Lp2*P0u*P2u*P0v*P1v - 2*Lp2*Lp2*P0u*P2u*P0v*P2v - 2*Lp2*Lp2*P0u*P2u*P1v*P1v + 2*Lp2*Lp2*P0u*P2u*P1v*P2v + Lp2*Lp2*P1u*P1u*P0v*P0v - 2*Lp2*Lp2*P1u*P1u*P0v*P2v + Lp2*Lp2*P1u*P1u*P2v*P2v - 2*Lp2*Lp2*P1u*P2u*P0v*P0v + 2*Lp2*Lp2*P1u*P2u*P0v*P1v + 2*Lp2*Lp2*P1u*P2u*P0v*P2v - 2*Lp2*Lp2*P1u*P2u*P1v*P2v + Lp2*Lp2*P2u*P2u*P0v*P0v - 2*Lp2*Lp2*P2u*P2u*P0v*P1v + Lp2*Lp2*P2u*P2u*P1v*P1v - 2*Lp2*Lq1*P0u*P0u*P1v*P1v + 2*Lp2*Lq1*P0u*P0u*P1v*P2v + 2*Lp2*Lq1*P0u*P0u*P1v*PTv - 2*Lp2*Lq1*P0u*P0u*P2v*PTv + 4*Lp2*Lq1*P0u*P1u*P0v*P1v - 2*Lp2*Lq1*P0u*P1u*P0v*P2v - 2*Lp2*Lq1*P0u*P1u*P0v*PTv - 2*Lp2*Lq1*P0u*P1u*P1v*P2v - 2*Lp2*Lq1*P0u*P1u*P1v*PTv + 4*Lp2*Lq1*P0u*P1u*P2v*PTv - 2*Lp2*Lq1*P0u*P2u*P0v*P1v + 2*Lp2*Lq1*P0u*P2u*P0v*PTv + 2*Lp2*Lq1*P0u*P2u*P1v*P1v - 2*Lp2*Lq1*P0u*P2u*P1v*PTv - 2*Lp2*Lq1*P0u*P0v*P1v*PTu + 2*Lp2*Lq1*P0u*P0v*P2v*PTu + 2*Lp2*Lq1*P0u*P1v*P1v*PTu - 2*Lp2*Lq1*P0u*P1v*P2v*PTu - 2*Lp2*Lq1*P1u*P1u*P0v*P0v + 2*Lp2*Lq1*P1u*P1u*P0v*P2v + 2*Lp2*Lq1*P1u*P1u*P0v*PTv - 2*Lp2*Lq1*P1u*P1u*P2v*PTv + 2*Lp2*Lq1*P1u*P2u*P0v*P0v - 2*Lp2*Lq1*P1u*P2u*P0v*P1v - 2*Lp2*Lq1*P1u*P2u*P0v*PTv + 2*Lp2*Lq1*P1u*P2u*P1v*PTv + 2*Lp2*Lq1*P1u*P0v*P0v*PTu - 2*Lp2*Lq1*P1u*P0v*P1v*PTu - 2*Lp2*Lq1*P1u*P0v*P2v*PTu + 2*Lp2*Lq1*P1u*P1v*P2v*PTu - 2*Lp2*Lq1*P2u*P0v*P0v*PTu + 4*Lp2*Lq1*P2u*P0v*P1v*PTu - 2*Lp2*Lq1*P2u*P1v*P1v*PTu + 4*Lp2*P0u*P0u*P1v*P2v - 4*Lp2*P0u*P0u*P1v*PTv - 4*Lp2*P0u*P0u*P2v*PTv + 4*Lp2*P0u*P0u*PTv*PTv - 4*Lp2*P0u*P1u*P0v*P2v + 4*Lp2*P0u*P1u*P0v*PTv + 4*Lp2*P0u*P1u*P2v*PTv - 4*Lp2*P0u*P1u*PTv*PTv - 4*Lp2*P0u*P2u*P0v*P1v + 4*Lp2*P0u*P2u*P0v*PTv + 4*Lp2*P0u*P2u*P1v*PTv - 4*Lp2*P0u*P2u*PTv*PTv + 4*Lp2*P0u*P0v*P1v*PTu + 4*Lp2*P0u*P0v*P2v*PTu - 8*Lp2*P0u*P0v*PTu*PTv - 8*Lp2*P0u*P1v*P2v*PTu + 4*Lp2*P0u*P1v*PTu*PTv + 4*Lp2*P0u*P2v*PTu*PTv + 4*Lp2*P1u*P2u*P0v*P0v - 8*Lp2*P1u*P2u*P0v*PTv + 4*Lp2*P1u*P2u*PTv*PTv - 4*Lp2*P1u*P0v*P0v*PTu + 4*Lp2*P1u*P0v*P2v*PTu + 4*Lp2*P1u*P0v*PTu*PTv - 4*Lp2*P1u*P2v*PTu*PTv - 4*Lp2*P2u*P0v*P0v*PTu + 4*Lp2*P2u*P0v*P1v*PTu + 4*Lp2*P2u*P0v*PTu*PTv - 4*Lp2*P2u*P1v*PTu*PTv + 4*Lp2*P0v*P0v*PTu*PTu - 4*Lp2*P0v*P1v*PTu*PTu - 4*Lp2*P0v*P2v*PTu*PTu + 4*Lp2*P1v*P2v*PTu*PTu + Lq1*Lq1*P0u*P0u*P1v*P1v - 2*Lq1*Lq1*P0u*P0u*P1v*PTv + Lq1*Lq1*P0u*P0u*PTv*PTv - 2*Lq1*Lq1*P0u*P1u*P0v*P1v + 2*Lq1*Lq1*P0u*P1u*P0v*PTv + 2*Lq1*Lq1*P0u*P1u*P1v*PTv - 2*Lq1*Lq1*P0u*P1u*PTv*PTv + 2*Lq1*Lq1*P0u*P0v*P1v*PTu - 2*Lq1*Lq1*P0u*P0v*PTu*PTv - 2*Lq1*Lq1*P0u*P1v*P1v*PTu + 2*Lq1*Lq1*P0u*P1v*PTu*PTv + Lq1*Lq1*P1u*P1u*P0v*P0v - 2*Lq1*Lq1*P1u*P1u*P0v*PTv + Lq1*Lq1*P1u*P1u*PTv*PTv - 2*Lq1*Lq1*P1u*P0v*P0v*PTu + 2*Lq1*Lq1*P1u*P0v*P1v*PTu + 2*Lq1*Lq1*P1u*P0v*PTu*PTv - 2*Lq1*Lq1*P1u*P1v*PTu*PTv + Lq1*Lq1*P0v*P0v*PTu*PTu - 2*Lq1*Lq1*P0v*P1v*PTu*PTu + Lq1*Lq1*P1v*P1v*PTu*PTu) + 2*P0u*P1v - 2*P1u*P0v - 2*P0u*PTv + 2*P0v*PTu + 2*P1u*PTv - 2*P1v*PTu - 2*Lp1*P0u*P1v + 2*Lp1*P1u*P0v + Lp1*P0u*P2v - Lp1*P2u*P0v - Lp2*P0u*P1v + Lp2*P1u*P0v - 2*Lp1*P1u*P2v + 2*Lp1*P2u*P1v + Lp2*P0u*P2v - Lp2*P2u*P0v - Lp2*P1u*P2v + Lp2*P2u*P1v + Lq1*P0u*P1v - Lq1*P1u*P0v + Lp1*P0u*PTv - Lp1*P0v*PTu - Lp1*P2u*PTv + Lp1*P2v*PTu - Lq1*P0u*PTv + Lq1*P0v*PTu + Lq1*P1u*PTv - Lq1*P1v*PTu)/(2*(P0u*P1v - P1u*P0v - P0u*PTv + P0v*PTu + P1u*PTv - P1v*PTu - Lp1*P0u*P1v + Lp1*P1u*P0v + Lp1*P0u*P2v - Lp1*P2u*P0v - Lp1*P1u*P2v + Lp1*P2u*P1v));
   }
 
-  double level;
+  float level;
   if (Rp1 < 0) {
     level = (Rp1*dR + Rp2) / (dR + Rq1);
   } else {
@@ -111,7 +116,41 @@ float findCoefficient (const Luv PT, const Luv P0, const Luv P1, const Luv P2, c
   return level;
 }
 
+/**
+ * CCIT CRC-32 (Autodin II) Polynomial
+ */
+uint32_t CRC32 (uint32_t crc, uint8_t *buf, uint16_t len) {
+  while (len--) {
+    crc = crc ^ *buf++;
+    for (uint8_t i = 0; i < 8; ++i) {
+      if (crc & 1) {
+        crc = (crc >>1) ^ 0xEDB88320;
+      } else {
+        crc = crc >> 1;
+      }
+    }
+  }
+}
 
+/**
+ * Calculate CRC32 for calibration data
+ */
+uint32_t calibrationCRC32 (Calibration *cal) {
+  // Non crc32 parts of calibration structure are 22 floats = 88 bytes
+  const uint8_t len = 88;
+  // Initial value for CRC
+  uint32_t crc32 = 0xFFFFFFFF;
+  // temporary data buffer
+  uint8_t buf[len]; 
+  
+  // Copy calibration data to byte array
+  memcpy(buf, cal, len);
+  
+  // Calculate CRC
+  crc32 = CRC32(crc32, buf, len);
+
+  return crc32;
+}
 
 /**
  * Internal getters and setters
@@ -216,12 +255,12 @@ void setCie1976Ucs (Luv target) {
   RGB raw;
   
   // Coefficients
-  raw.R = findCoefficient(target, redUv_, greenUv_, blueUv_, redToGreenFit_, greenToBlueFit_);
-  raw.G = findCoefficient(target, greenUv_, blueUv_, redUv_, greenToBlueFit_, blueToRedFit_);
-  raw.B = findCoefficient(target, blueUv_, redUv_, greenUv_, blueToRedFit_, redToGreenFit_);
+  raw.R = findCoefficient(target, cal_.redUv, cal_.greenUv, cal_.blueUv, cal_.redToGreenFit, cal_.greenToBlueFit);
+  raw.G = findCoefficient(target, cal_.greenUv, cal_.blueUv, cal_.redUv, cal_.greenToBlueFit, cal_.blueToRedFit);
+  raw.B = findCoefficient(target, cal_.blueUv, cal_.redUv, cal_.greenUv, cal_.blueToRedFit, cal_.redToGreenFit);
   
   // Luma produced by the current raw values
-  float Y = (raw.R * redLum_ + raw.G * greenLum_ + raw.B * blueLum_) / maxLum_;
+  float Y = (raw.R * cal_.redLum + raw.G * cal_.greenLum + raw.B * cal_.blueLum) / cal_.maxLum;
 
   // Luma level needed for requested lightness
   float Y_target = pow(((target.L + 16) / 116), 3);
@@ -286,21 +325,28 @@ void setColorTemperature (float L, int T) {
 void calibrate (const Luv redUv, const Luv greenUv, const Luv blueUv, const float redLum, const float greenLum,
 const float blueLum, const float redToGreenFit[3], const float greenToBlueFit[3], const float blueToRedFit[3]) {
   // CIE 1976 UCS coordinates
-  redUv_.u = redUv.u; redUv_.v = redUv.v;
-  greenUv_.u = greenUv.u; greenUv_.v = greenUv.v;
-  blueUv_.u = blueUv.u; blueUv_.v = blueUv.v;
+  cal_.redUv.u = redUv.u; cal_.redUv.v = redUv.v;
+  cal_.greenUv.u = greenUv.u; cal_.greenUv.v = greenUv.v;
+  cal_.blueUv.u = blueUv.u; cal_.blueUv.v = blueUv.v;
 
   // Luminous fluxes
-  redLum_ = redLum;
-  greenLum_ = greenLum;
-  blueLum_ = blueLum;
+  cal_.redLum = redLum;
+  cal_.greenLum = greenLum;
+  cal_.blueLum = blueLum;
 
   // Fit functions
   for (uint8_t i = 0; i < 3; ++i) {
-    redToGreenFit_[i] = redToGreenFit[i];
-    greenToBlueFit_[i] = greenToBlueFit[i];
-    blueToRedFit_[i] = blueToRedFit[i];
+    cal_.redToGreenFit[i] = redToGreenFit[i];
+    cal_.greenToBlueFit[i] = greenToBlueFit[i];
+    cal_.blueToRedFit[i] = blueToRedFit[i];
   }
+
+  // Calculate CRC32
+  cal_.crc32 = calibrationCRC32(&cal_);
+
+  // Save to EEPROM
+  EEPROM.put(calibrationAddress, cal_);
+  EEPROM.commit();
 }
 
 /**
@@ -329,12 +375,12 @@ void httpIndexController () {
 
   // Calibration u', v' coordinates
   char strRedU[10], strRedV[10], strGreenU[10], strGreenV[10], strBlueU[10], strBlueV[10];
-  dtostrf(redUv_.u, 6, 4, strRedU);
-  dtostrf(redUv_.v, 6, 4, strRedV);
-  dtostrf(greenUv_.u, 6, 4, strGreenU);
-  dtostrf(greenUv_.v, 6, 4, strGreenV);
-  dtostrf(blueUv_.u, 6, 4, strBlueU);
-  dtostrf(blueUv_.v, 6, 4, strBlueV);
+  dtostrf(cal_.redUv.u, 6, 4, strRedU);
+  dtostrf(cal_.redUv.v, 6, 4, strRedV);
+  dtostrf(cal_.greenUv.u, 6, 4, strGreenU);
+  dtostrf(cal_.greenUv.v, 6, 4, strGreenV);
+  dtostrf(cal_.blueUv.u, 6, 4, strBlueU);
+  dtostrf(cal_.blueUv.v, 6, 4, strBlueV);
   html.replace("'{{redU}}'", strRedU);
   html.replace("'{{redV}}'", strRedV);
   html.replace("'{{greenU}}'", strGreenU);
@@ -344,36 +390,36 @@ void httpIndexController () {
 
   // Calibration luminous fluxes
   char strRedLum[10], strGreenLum[10], strBlueLum[10];
-  dtostrf(redLum_, 6, 4, strRedLum);
-  dtostrf(greenLum_, 6, 4, strGreenLum);
-  dtostrf(blueLum_, 6, 4, strBlueLum);
+  dtostrf(cal_.redLum, 6, 4, strRedLum);
+  dtostrf(cal_.greenLum, 6, 4, strGreenLum);
+  dtostrf(cal_.blueLum, 6, 4, strBlueLum);
   html.replace("'{{redLum}}'", strRedLum);
   html.replace("'{{greenLum}}'", strGreenLum);
   html.replace("'{{blueLum}}'", strBlueLum);
   
   // Calibration red to green fit
   char strRedP1[10], strRedP2[10], strRedQ1[10];
-  dtostrf(redToGreenFit_[0], 6, 4, strRedP1);
-  dtostrf(redToGreenFit_[1], 6, 4, strRedP2);
-  dtostrf(redToGreenFit_[2], 6, 4, strRedQ1);
+  dtostrf(cal_.redToGreenFit[0], 6, 4, strRedP1);
+  dtostrf(cal_.redToGreenFit[1], 6, 4, strRedP2);
+  dtostrf(cal_.redToGreenFit[2], 6, 4, strRedQ1);
   html.replace("'{{redP1}}'", strRedP1);
   html.replace("'{{redP2}}'", strRedP2);
   html.replace("'{{redQ1}}'", strRedQ1);
   
   // Calibration green to blue fit
   char strGreenP1[10], strGreenP2[10], strGreenQ1[10];
-  dtostrf(greenToBlueFit_[0], 6, 4, strGreenP1);
-  dtostrf(greenToBlueFit_[1], 6, 4, strGreenP2);
-  dtostrf(greenToBlueFit_[2], 6, 4, strGreenQ1);
+  dtostrf(cal_.greenToBlueFit[0], 6, 4, strGreenP1);
+  dtostrf(cal_.greenToBlueFit[1], 6, 4, strGreenP2);
+  dtostrf(cal_.greenToBlueFit[2], 6, 4, strGreenQ1);
   html.replace("'{{greenP1}}'", strGreenP1);
   html.replace("'{{greenP2}}'", strGreenP2);
   html.replace("'{{greenQ1}}'", strGreenQ1);
   
   // Calibration blue to red fit
   char strBlueP1[10], strBlueP2[10], strBlueQ1[10];
-  dtostrf(blueToRedFit_[0], 6, 4, strBlueP1);
-  dtostrf(blueToRedFit_[1], 6, 4, strBlueP2);
-  dtostrf(blueToRedFit_[2], 6, 4, strBlueQ1);
+  dtostrf(cal_.blueToRedFit[0], 6, 4, strBlueP1);
+  dtostrf(cal_.blueToRedFit[1], 6, 4, strBlueP2);
+  dtostrf(cal_.blueToRedFit[2], 6, 4, strBlueQ1);
   html.replace("'{{blueP1}}'", strBlueP1);
   html.replace("'{{blueP2}}'", strBlueP2);
   html.replace("'{{blueQ1}}'", strBlueQ1);
@@ -652,11 +698,47 @@ void setup(void){
   //wiFiManager.resetSettings(); // For testing
   wiFiManager.autoConnect("chromasome", "chromasome");
 
-  //Serial.begin(115200);
+  Serial.begin(115200);
 
   // Set onboard leds off as a sign for STA mode
   setLed1(false);
   setLed2(false);
+
+  EEPROM.begin(128);
+  // Read calibration data from EEPROM  
+  Calibration cal;
+  EEPROM.get(calibrationAddress, cal);
+  
+  if (cal.crc32 == calibrationCRC32(&cal)) {
+    // EEPROM contents are valid, copy to calibration data
+    memcpy(&cal_, &cal, sizeof(cal));
+    
+  } else {
+    // EEPROM contains junk, use default values
+    cal_.redLum = 50;
+    cal_.greenLum = 100;
+    cal_.blueLum = 75;
+    cal_.maxLum = 225;
+    cal_.redUv.L = 100;
+    cal_.redUv.u = 0.5535;
+    cal_.redUv.v = 0.5170;
+    cal_.greenUv.L = 100;
+    cal_.greenUv.u = 0.0373;
+    cal_.greenUv.v = 0.5856;
+    cal_.blueUv.L = 100;
+    cal_.blueUv.u = 0.1679;
+    cal_.blueUv.v = 0.1153;
+    cal_.redToGreenFit[0] = 2.9658;
+    cal_.redToGreenFit[1] = 0.0;
+    cal_.redToGreenFit[2] = 1.9658;
+    cal_.greenToBlueFit[0] = 1.3587;
+    cal_.greenToBlueFit[1] = 0.0;
+    cal_.greenToBlueFit[2] = 0.3587;
+    cal_.blueToRedFit[0] = -0.2121;
+    cal_.blueToRedFit[1] = 0.2121;
+    cal_.blueToRedFit[2] = 0.2121;
+    cal_.crc32 = 0;
+  }
 
   // Set default to 1900K
   setOnOff(true);

@@ -1,0 +1,98 @@
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[twoside,twocolumn]{article}
+
+\usepackage{blindtext} % Package to generate dummy text throughout this template 
+
+\usepackage[sc]{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Use 8-bit encoding that has 256 glyphs
+\linespread{1.05} % Line spacing - Palatino needs more space between lines
+\usepackage{microtype} % Slightly tweak font spacing for aesthetics
+
+\usepackage[english]{babel} % Language hyphenation and typographical rules
+
+\usepackage[hmarginratio=1:1,top=32mm,columnsep=20pt]{geometry} % Document margins
+\usepackage[hang, small,labelfont=bf,up,textfont=it,up]{caption} % Custom captions under/above floats in tables or figures
+\usepackage{booktabs} % Horizontal rules in tables
+
+\usepackage{lettrine} % The lettrine is the first enlarged letter at the beginning of the text
+
+\usepackage{enumitem} % Customized lists
+\setlist[itemize]{noitemsep} % Make itemize lists more compact
+
+\usepackage{abstract} % Allows abstract customization
+\renewcommand{\abstractnamefont}{\normalfont\bfseries} % Set the "Abstract" text to bold
+\renewcommand{\abstracttextfont}{\normalfont\small\itshape} % Set the abstract itself to small italic text
+
+\usepackage{titlesec} % Allows customization of titles
+\renewcommand\thesection{\Roman{section}} % Roman numerals for the sections
+\renewcommand\thesubsection{\roman{subsection}} % roman numerals for subsections
+\titleformat{\section}[block]{\large\scshape\centering}{\thesection.}{1em}{} % Change the look of the section titles
+\titleformat{\subsection}[block]{\large}{\thesubsection.}{1em}{} % Change the look of the section titles
+
+\usepackage{fancyhdr} % Headers and footers
+\pagestyle{fancy} % All pages have headers and footers
+\fancyhead{} % Blank out the default header
+\fancyfoot{} % Blank out the default footer
+\fancyhead[C]{Running title $\bullet$ May 2016 $\bullet$ Vol. XXI, No. 1} % Custom header text
+\fancyfoot[RO,LE]{\thepage} % Custom footer text
+
+\usepackage{titling} % Customizing the title section
+
+\usepackage{hyperref} % For hyperlinks in the PDF
+
+\usepackage[
+	backend=biber,
+	natbib=false,
+	sortlocale=fi_FI,
+	url=false, 
+	doi=true,
+	eprint=true,
+	style=numeric-comp,
+	sorting=none,
+]{biblatex}
+\addbibresource{Illumination.bib}
+
+
+
+\setlength{\droptitle}{-4\baselineskip} % Move the title up
+
+\pretitle{\begin{center}\Huge\bfseries} % Article title formatting
+\posttitle{\end{center}} % Article title closing formatting
+\title{Calibration of RGB LED} % Article title
+\author{%
+	\textsc{Jaakko Pasanen} \\[1ex] % Your name
+	\normalsize Tampere University of Techonology \\ % Your institution
+	\normalsize \href{mailto:jaakko.o.pasanen@gmail.com}{jaakko.o.pasanen@gmail.com} % Your email address
+	%\and % Uncomment if 2 authors are required, duplicate these 4 lines if more
+	%\textsc{Jane Smith}\thanks{Corresponding author} \\[1ex] % Second author's name
+	%\normalsize University of Utah \\ % Second author's institution
+	%\normalsize \href{mailto:jane@smith.com}{jane@smith.com} % Second author's email address
+}
+\date{\today} % Leave empty to omit a date
+\renewcommand{\maketitlehookd}{%
+	\begin{abstract}
+		\noindent
+		Wow much abstract, very summary
+	\end{abstract}
+}
+
+
+
+\begin{document}
+	
+	% Print the title
+	\maketitle
+	
+	
+	
+	\section{Introduction}
+	\lettrine[nindent=0em,lines=3]{H} ello world \cite{Smet2016} \cite{Smet2013}
+
+	
+	
+	\printbibliography
+\end{document}
+

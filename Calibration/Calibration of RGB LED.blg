@@ -1,0 +1,18 @@
+[0] Config.pm:343> INFO - This is Biber 2.5
+[0] Config.pm:346> INFO - Logfile is 'Calibration of RGB LED.blg'
+[68] biber-MSWIN32:290> INFO - === 
+[107] Biber.pm:351> INFO - Reading 'Calibration of RGB LED.bcf'
+[287] Biber.pm:776> INFO - Found 2 citekeys in bib section 0
+[318] Biber.pm:3493> INFO - Processing section 0
+[352] Biber.pm:3657> INFO - Looking for bibtex format file 'Illumination.bib' for section 0
+[364] bibtex.pm:1187> INFO - Decoding LaTeX character macros into UTF-8
+[375] bibtex.pm:1048> INFO - Found BibTeX data source 'Illumination.bib'
+[417] Utils.pm:149> WARN - ISBN '1550-2724' in entry 'Smet2016' is invalid - run biber with '--validate_datamodel' for details.
+[432] Utils.pm:149> WARN - BibTeX subsystem: C:\Users\jaakko\AppData\Local\Temp\eEkJYhDQr6\Illumination.bib_2184.utf8, line 6, warning: 172 characters of junk seen at toplevel
+[455] UCollate.pm:66> INFO - Overriding locale 'fi_FI' defaults 'variable = shifted' with 'variable = non-ignorable'
+[455] UCollate.pm:66> INFO - Overriding locale 'fi_FI' defaults 'normalization = NFD' with 'normalization = prenormalized'
+[455] Biber.pm:3306> INFO - Sorting list 'none/global/' of type 'entry' with scheme 'none' and locale 'fi_FI'
+[459] bbl.pm:526> INFO - Writing 'Calibration of RGB LED.bbl' with encoding 'ascii'
+[464] Utils.pm:149> WARN - The entry 'Smet2016' has characters which cannot be encoded in 'ascii'. Recoding problematic characters into macros.
+[466] bbl.pm:619> INFO - Output to Calibration of RGB LED.bbl
+[472] Biber.pm:108> INFO - WARNINGS: 3

@@ -1,0 +1,113 @@
+% $ biblatex auxiliary file $
+% $ biblatex bbl format version 2.7 $
+% Do not modify the above lines!
+%
+% This is an auxiliary file used by the 'biblatex' package.
+% This file may safely be deleted. It will be recreated by
+% biber as required.
+%
+\begingroup
+\makeatletter
+\@ifundefined{ver@biblatex.sty}
+  {\@latex@error
+     {Missing 'biblatex' package}
+     {The bibliography requires the 'biblatex' package.}
+      \aftergroup\endinput}
+  {}
+\endgroup
+
+
+\refsection{0}
+  \sortlist[entry]{none/global/}
+    \entry{Smet2016}{article}{}
+      \name{author}{3}{}{%
+        {{hash=0e400bec266da6e6621f4db4e55366e2}{%
+           family={Smet},
+           family_i={S\bibinitperiod},
+           given={Kevin\bibnamedelimb A\bibnamedelima G},
+           given_i={K\bibinitperiod\bibinitdelim A\bibinitperiod\bibinitdelim G\bibinitperiod}}}%
+        {{hash=de3cb5b3bebd55c80ad7861ae4d16420}{%
+           family={David},
+           family_i={D\bibinitperiod},
+           given={Aurelien},
+           given_i={A\bibinitperiod}}}%
+        {{hash=c839fb2475c69db29e5cb435c831fe02}{%
+           family={Whitehead},
+           family_i={W\bibinitperiod},
+           given={Lorne},
+           given_i={L\bibinitperiod}}}%
+      }
+      \strng{namehash}{5654b0ebcf3bc5af57f3490853768487}
+      \strng{fullhash}{5654b0ebcf3bc5af57f3490853768487}
+      \field{sortinit}{0}
+      \field{sortinithash}{990108227b3316c02842d895999a0165}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{Recently, a group including the present authors developed a new color rendering (fidelity) measure, approved by the IES and henceforth referred to as IES Rf, that has two major updates with respect to the general color rendering index Ra of the CIE. First, it proposes an update to the more perceptually uniform CAM02-UCS color space. Secondly, instead of using only a small number (eight) of moderately saturated samples to determine a general color fidelity index, the IES method proposes using a set of 99 samples uniformly distributed in color space. In addition to the latter, the sample set has one other important property: spectral uniformity. This ensures that the sample set is not wavelength biased: all wavelengths contribute equivalently to the general color fidelity score. This article explores the importance of these two updates for color fidelity evaluation. It shows how the color space update results in a substantial spread of the new color fidelity scores relative to the old CIE Ra values and how the sample set update results in an overall reduction of color fidelity scores for most light source spectra with high CIE Ra (\x{fffd}\x{fffd}\x{fffd}80) and high luminous efficacy of radiation (LER) values, especially those with narrowband or spiked spectral features. It is shown that calculated color fidelity scores are affected by the degree of sample set spectral uniformity and that, in the absence of sample set spectral uniformity, light source spectra can be tuned to yield anomalously high CIE Ra values without necessarily yielding an increase in actual perceived color fidelity.}
+      \field{isbn}{1550-2724}
+      \field{issn}{1550-2724}
+      \field{journaltitle}{Leukos}
+      \field{number}{1-2}
+      \field{title}{{Why color space uniformity and sample set spectral uniformity are essential for color rendering measures}}
+      \field{volume}{12}
+      \field{year}{2016}
+      \field{pages}{39\bibrangedash 50}
+      \range{pages}{12}
+      \verb{doi}
+      \verb 10.1080/15502724.2015.1091356
+      \endverb
+      \verb{file}
+      \verb :C$\backslash$:/Users/jaakko/Desktop/Tunable-White-LED/Color Rendering Analysis/SMETKAG2015{\_}Why Color Space Uniformity and Sample Set Spectral Uniformity are essential for color rendering measures.pdf:pdf
+      \endverb
+    \endentry
+    \entry{Smet2013}{article}{}
+      \name{author}{4}{}{%
+        {{hash=8ad5211931f11281a97398252abdd252}{%
+           family={Smet},
+           family_i={S\bibinitperiod},
+           given={K.},
+           given_i={K\bibinitperiod}}}%
+        {{hash=1ff7e9502c09ac18c04a088370950339}{%
+           family={Schanda},
+           family_i={S\bibinitperiod},
+           given={J.},
+           given_i={J\bibinitperiod}}}%
+        {{hash=8ccef35182ee1b82733907687a32c3e8}{%
+           family={Whitehead},
+           family_i={W\bibinitperiod},
+           given={L.},
+           given_i={L\bibinitperiod}}}%
+        {{hash=0201a1af5dbc1a99824d7db9a2284840}{%
+           family={Luo},
+           family_i={L\bibinitperiod},
+           given={R.},
+           given_i={R\bibinitperiod}}}%
+      }
+      \strng{namehash}{6c4e7e8e1e574f4cc9ba9efec06ed66e}
+      \strng{fullhash}{4bc45233f910cfe6cefd44edd402d175}
+      \field{sortinit}{0}
+      \field{sortinithash}{990108227b3316c02842d895999a0165}
+      \field{labelnamesource}{author}
+      \field{labeltitlesource}{title}
+      \field{abstract}{The CIE colour rendering index (CRI) has been criticized for its poor correlation with the visual colour rendering of many spiked or narrowband sources, its outdated colour space and chromatic adaptation transform and the use of a small number of non-optimal reflectance samples that have enabled lamp manufacturers to tune the spectrum of a light source to yield, in some cases, inappropriately high general CRI values. The CRI2012 metric proposed in this paper addresses these criticisms by combining the most state of the art colorimetric colour difference model, i.e. CAM02-UCS, with a mathematical reflectance set that exhibits a highly uniform spectral sensitivity. A set of 210 real reflectance samples has also been selected to provide additional information on the expected colour shifts when changing illumination.}
+      \field{issn}{1477-1535}
+      \field{journaltitle}{Lighting Research and Technology}
+      \field{title}{{CRI2012: A proposal for updating the CIE colour rendering index}}
+      \field{volume}{45}
+      \field{year}{2013}
+      \field{pages}{689\bibrangedash 709}
+      \range{pages}{21}
+      \verb{doi}
+      \verb 10.1177/1477153513481375
+      \endverb
+      \verb{file}
+      \verb :C$\backslash$:/Users/jaakko/Desktop/Tunable-White-LED/Color Rendering Analysis/CRI2012 A proposal for updateing the CIE color rendering index.pdf:pdf
+      \endverb
+      \verb{url}
+      \verb http://lrt.sagepub.com/content/45/6/689
+      \endverb
+    \endentry
+  \endsortlist
+\endrefsection
+\endinput
+

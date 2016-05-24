@@ -1,0 +1,786 @@
+This is pdfTeX, Version 3.14159265-2.6-1.40.16 (MiKTeX 2.9) (preloaded format=pdflatex 2016.5.24)  24 MAY 2016 20:55
+entering extended mode
+**"./Calibration of RGB LED.tex"
+("Calibration of RGB LED.tex"
+LaTeX2e <2015/10/01> patch level 2
+Babel <3.9n> and hyphenation patterns for 69 languages loaded.
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\article.cls"
+Document Class: article 2014/09/29 v1.4h Standard LaTeX document class
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\size10.clo"
+File: size10.clo 2014/09/29 v1.4h Standard LaTeX file (size option)
+)
+\c@part=\count79
+\c@section=\count80
+\c@subsection=\count81
+\c@subsubsection=\count82
+\c@paragraph=\count83
+\c@subparagraph=\count84
+\c@figure=\count85
+\c@table=\count86
+\abovecaptionskip=\skip41
+\belowcaptionskip=\skip42
+\bibindent=\dimen102
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\blindtext\blindtext.sty"
+Package: blindtext 2012/01/06 V2.0 blindtext-Package
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\tools\xspace.sty"
+Package: xspace 2014/10/28 v1.13 Space after command names (DPC,MH)
+)
+\c@blindtext=\count87
+\c@Blindtext=\count88
+\c@blind@countparstart=\count89
+\blind@countxx=\count90
+\blindtext@numBlindtext=\count91
+\blind@countyy=\count92
+\c@blindlist=\count93
+\c@blindlistlevel=\count94
+\c@blindlist@level=\count95
+\blind@listitem=\count96
+\c@blind@listcount=\count97
+\c@blind@levelcount=\count98
+\blind@mathformula=\count99
+\blind@Mathformula=\count100
+\c@blind@randomcount=\count101
+\c@blind@randommax=\count102
+\c@blind@pangramcount=\count103
+\c@blind@pangrammax=\count104
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\mathpazo.sty"
+Package: mathpazo 2005/04/12 PSNFSS-v9.2a Palatino w/ Pazo Math (D.Puga, WaS) 
+\symupright=\mathgroup4
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\fontenc.sty"
+Package: fontenc 2005/09/27 v1.99g Standard LaTeX package
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\t1enc.def"
+File: t1enc.def 2005/09/27 v1.99g Standard LaTeX file
+LaTeX Font Info:    Redeclaring font encoding T1 on input line 48.
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\microtype\microtype.sty"
+Package: microtype 2016/05/14 v2.6a Micro-typographical refinements (RS)
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\graphics\keyval.sty"
+Package: keyval 2014/10/28 v1.15 key=value parser (DPC)
+\KV@toks@=\toks14
+)
+\MT@toks=\toks15
+\MT@count=\count105
+LaTeX Info: Redefining \textls on input line 774.
+\MT@outer@kern=\dimen103
+LaTeX Info: Redefining \textmicrotypecontext on input line 1310.
+\MT@listname@count=\count106
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\microtype\microtype-pdftex.def"
+File: microtype-pdftex.def 2016/05/14 v2.6a Definitions specific to pdftex (RS)
+
+LaTeX Info: Redefining \lsstyle on input line 916.
+LaTeX Info: Redefining \lslig on input line 916.
+\MT@outer@space=\skip43
+)
+Package microtype Info: Loading configuration file microtype.cfg.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\microtype\microtype.cfg"
+File: microtype.cfg 2016/05/14 v2.6a microtype main configuration file (RS)
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\babel\babel.sty"
+Package: babel 2016/01/08 3.9n The Babel package
+
+*************************************
+* Local config file bblopts.cfg used
+*
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\00miktex\bblopts.cfg"
+File: bblopts.cfg 2006/07/31 v1.0 MiKTeX 'babel' configuration
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\babel-english\english.ldf"
+Language: english 2012/08/20 v3.3p English support from the babel system
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\babel\babel.def"
+File: babel.def 2016/01/08 3.9n Babel common definitions
+\babel@savecnt=\count107
+\U@D=\dimen104
+)
+\l@canadian = a dialect from \language\l@american 
+\l@australian = a dialect from \language\l@british 
+\l@newzealand = a dialect from \language\l@british 
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\geometry\geometry.sty"
+Package: geometry 2010/09/12 v5.6 Page Geometry
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\ifpdf.sty"
+Package: ifpdf 2011/01/30 v2.3 Provides the ifpdf switch (HO)
+Package ifpdf Info: pdfTeX in PDF mode is detected.
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\ifvtex.sty"
+Package: ifvtex 2010/03/01 v1.5 Detect VTeX and its facilities (HO)
+Package ifvtex Info: VTeX not detected.
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\ifxetex\ifxetex.sty"
+Package: ifxetex 2010/09/12 v0.6 Provides ifxetex conditional
+)
+\Gm@cnth=\count108
+\Gm@cntv=\count109
+\c@Gm@tempcnt=\count110
+\Gm@bindingoffset=\dimen105
+\Gm@wd@mp=\dimen106
+\Gm@odd@mp=\dimen107
+\Gm@even@mp=\dimen108
+\Gm@layoutwidth=\dimen109
+\Gm@layoutheight=\dimen110
+\Gm@layouthoffset=\dimen111
+\Gm@layoutvoffset=\dimen112
+\Gm@dimlist=\toks16
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\geometry\geometry.cfg"))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\caption\caption.sty"
+Package: caption 2016/02/21 v3.3-144 Customizing captions (AR)
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\caption\caption3.sty"
+Package: caption3 2016/02/04 v1.7-139 caption3 kernel (AR)
+Package caption3 Info: TeX engine: e-TeX on input line 67.
+\captionmargin=\dimen113
+\captionmargin@=\dimen114
+\captionwidth=\dimen115
+\caption@tempdima=\dimen116
+\caption@indent=\dimen117
+\caption@parindent=\dimen118
+\caption@hangindent=\dimen119
+)
+\c@ContinuedFloat=\count111
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\booktabs\booktabs.sty"
+Package: booktabs 2005/04/14 v1.61803 publication quality tables
+\heavyrulewidth=\dimen120
+\lightrulewidth=\dimen121
+\cmidrulewidth=\dimen122
+\belowrulesep=\dimen123
+\belowbottomsep=\dimen124
+\aboverulesep=\dimen125
+\abovetopsep=\dimen126
+\cmidrulesep=\dimen127
+\cmidrulekern=\dimen128
+\defaultaddspace=\dimen129
+\@cmidla=\count112
+\@cmidlb=\count113
+\@aboverulesep=\dimen130
+\@belowrulesep=\dimen131
+\@thisruleclass=\count114
+\@lastruleclass=\count115
+\@thisrulewidth=\dimen132
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\lettrine\lettrine.sty"
+File: lettrine.sty 2015/08/31 v1.9 (Daniel Flipo)
+\c@DefaultLines=\count116
+\c@DefaultDepth=\count117
+\DefaultFindent=\dimen133
+\DefaultNindent=\dimen134
+\DefaultSlope=\dimen135
+\DiscardVskip=\dimen136
+\L@lbox=\box26
+\L@tbox=\box27
+\c@L@lines=\count118
+\c@L@depth=\count119
+\L@Pindent=\dimen137
+\L@Findent=\dimen138
+\L@Nindent=\dimen139
+\L@lraise=\dimen140
+\L@first=\dimen141
+\L@next=\dimen142
+\L@slope=\dimen143
+\L@height=\dimen144
+\L@novskip=\dimen145
+\LettrineWidth=\dimen146
+\LettrineHeight=\dimen147
+\LettrineDepth=\dimen148
+
+Loading lettrine.cfg
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\lettrine\lettrine.cfg"))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\enumitem\enumitem.sty"
+Package: enumitem 2011/09/28 v3.5.2 Customized lists
+\labelindent=\skip44
+\enit@outerparindent=\dimen149
+\enit@toks=\toks17
+\enit@inbox=\box28
+\enitdp@description=\count120
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\abstract\abstract.sty"
+Package: abstract 2009/06/08 v1.2a configurable abstracts
+\abstitleskip=\skip45
+\absleftindent=\skip46
+\absrightindent=\skip47
+\absparindent=\skip48
+\absparsep=\skip49
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\titlesec\titlesec.sty"
+Package: titlesec 2016/03/21 v2.10.2 Sectioning titles
+\ttl@box=\box29
+\beforetitleunit=\skip50
+\aftertitleunit=\skip51
+\ttl@plus=\dimen150
+\ttl@minus=\dimen151
+\ttl@toksa=\toks18
+\titlewidth=\dimen152
+\titlewidthlast=\dimen153
+\titlewidthfirst=\dimen154
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\titlesec\block.tss"
+File: block.tss 2016/03/15
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\fancyhdr\fancyhdr.sty"
+\fancy@headwidth=\skip52
+\f@ncyO@elh=\skip53
+\f@ncyO@erh=\skip54
+\f@ncyO@olh=\skip55
+\f@ncyO@orh=\skip56
+\f@ncyO@elf=\skip57
+\f@ncyO@erf=\skip58
+\f@ncyO@olf=\skip59
+\f@ncyO@orf=\skip60
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\titling\titling.sty"
+Package: titling 2009/09/04 v2.1d maketitle typesetting
+\thanksmarkwidth=\skip61
+\thanksmargin=\skip62
+\droptitle=\skip63
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\hyperref\hyperref.sty"
+Package: hyperref 2012/11/06 v6.83m Hypertext links for LaTeX
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\hobsub-hyperref.sty"
+Package: hobsub-hyperref 2012/04/25 v1.12 Bundle oberdiek, subset hyperref (HO)
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\hobsub-generic.sty"
+Package: hobsub-generic 2012/04/25 v1.12 Bundle oberdiek, subset generic (HO)
+Package: hobsub 2012/04/25 v1.12 Construct package bundles (HO)
+Package: infwarerr 2010/04/08 v1.3 Providing info/warning/error messages (HO)
+Package: ltxcmds 2011/11/09 v1.22 LaTeX kernel commands for general use (HO)
+Package: ifluatex 2010/03/01 v1.3 Provides the ifluatex switch (HO)
+Package ifluatex Info: LuaTeX not detected.
+Package hobsub Info: Skipping package `ifvtex' (already loaded).
+Package: intcalc 2007/09/27 v1.1 Expandable calculations with integers (HO)
+Package hobsub Info: Skipping package `ifpdf' (already loaded).
+Package: etexcmds 2011/02/16 v1.5 Avoid name clashes with e-TeX commands (HO)
+Package etexcmds Info: Could not find \expanded.
+(etexcmds)             That can mean that you are not using pdfTeX 1.50 or
+(etexcmds)             that some package has redefined \expanded.
+(etexcmds)             In the latter case, load this package earlier.
+Package: kvsetkeys 2012/04/25 v1.16 Key value parser (HO)
+Package: kvdefinekeys 2011/04/07 v1.3 Define keys (HO)
+Package: pdftexcmds 2011/11/29 v0.20 Utility functions of pdfTeX for LuaTeX (HO
+)
+Package pdftexcmds Info: LuaTeX not detected.
+Package pdftexcmds Info: \pdf@primitive is available.
+Package pdftexcmds Info: \pdf@ifprimitive is available.
+Package pdftexcmds Info: \pdfdraftmode found.
+Package: pdfescape 2011/11/25 v1.13 Implements pdfTeX's escape features (HO)
+Package: bigintcalc 2012/04/08 v1.3 Expandable calculations on big integers (HO
+)
+Package: bitset 2011/01/30 v1.1 Handle bit-vector datatype (HO)
+Package: uniquecounter 2011/01/30 v1.2 Provide unlimited unique counter (HO)
+)
+Package hobsub Info: Skipping package `hobsub' (already loaded).
+Package: letltxmacro 2010/09/02 v1.4 Let assignment for LaTeX macros (HO)
+Package: hopatch 2011/06/24 v1.1 Wrapper for package hooks (HO)
+Package: xcolor-patch 2011/01/30 xcolor patch
+Package: atveryend 2011/06/30 v1.8 Hooks at the very end of document (HO)
+Package atveryend Info: \enddocument detected (standard20110627).
+Package: atbegshi 2011/10/05 v1.16 At begin shipout hook (HO)
+Package: refcount 2011/10/16 v3.4 Data extraction from label references (HO)
+Package: hycolor 2011/01/30 v1.7 Color options for hyperref/bookmark (HO)
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\oberdiek\auxhook.sty"
+Package: auxhook 2011/03/04 v1.3 Hooks for auxiliary files (HO)
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\oberdiek\kvoptions.sty"
+Package: kvoptions 2011/06/30 v3.11 Key value format for package options (HO)
+)
+\@linkdim=\dimen155
+\Hy@linkcounter=\count121
+\Hy@pagecounter=\count122
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\hyperref\pd1enc.def"
+File: pd1enc.def 2012/11/06 v6.83m Hyperref: PDFDocEncoding definition (HO)
+)
+\Hy@SavedSpaceFactor=\count123
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\00miktex\hyperref.cfg"
+File: hyperref.cfg 2002/06/06 v1.2 hyperref configuration of TeXLive
+)
+Package hyperref Info: Hyper figures OFF on input line 4443.
+Package hyperref Info: Link nesting OFF on input line 4448.
+Package hyperref Info: Hyper index ON on input line 4451.
+Package hyperref Info: Plain pages OFF on input line 4458.
+Package hyperref Info: Backreferencing OFF on input line 4463.
+Package hyperref Info: Implicit mode ON; LaTeX internals redefined.
+Package hyperref Info: Bookmarks ON on input line 4688.
+\c@Hy@tempcnt=\count124
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\url\url.sty"
+\Urlmuskip=\muskip10
+Package: url 2013/09/16  ver 3.4  Verb mode for urls, etc.
+)
+LaTeX Info: Redefining \url on input line 5041.
+\XeTeXLinkMargin=\dimen156
+\Fld@menulength=\count125
+\Field@Width=\dimen157
+\Fld@charsize=\dimen158
+Package hyperref Info: Hyper figures OFF on input line 6295.
+Package hyperref Info: Link nesting OFF on input line 6300.
+Package hyperref Info: Hyper index ON on input line 6303.
+Package hyperref Info: backreferencing OFF on input line 6310.
+Package hyperref Info: Link coloring OFF on input line 6315.
+Package hyperref Info: Link coloring with OCG OFF on input line 6320.
+Package hyperref Info: PDF/A mode OFF on input line 6325.
+LaTeX Info: Redefining \ref on input line 6365.
+LaTeX Info: Redefining \pageref on input line 6369.
+\Hy@abspage=\count126
+\c@Item=\count127
+\c@Hfootnote=\count128
+)
+
+Package hyperref Message: Driver (autodetected): hpdftex.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\hyperref\hpdftex.def"
+File: hpdftex.def 2012/11/06 v6.83m Hyperref driver for pdfTeX
+\Fld@listcount=\count129
+\c@bookmark@seq@number=\count130
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\oberdiek\rerunfilecheck.sty"
+Package: rerunfilecheck 2011/04/15 v1.7 Rerun checks for auxiliary files (HO)
+Package uniquecounter Info: New unique counter `rerunfilecheck' on input line 2
+82.
+)
+\Hy@SectionHShift=\skip64
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\biblatex.sty"
+Package: biblatex 2016/05/14 v3.4 programmable bibliographies (PK/JW/AB)
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\iftex\iftex.sty"
+Package: iftex 2013/04/04 v0.2 Provides if(tex) conditional for PDFTeX, XeTeX, 
+and LuaTeX
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\etoolbox\etoolbox.sty"
+Package: etoolbox 2015/08/02 v2.2a e-TeX tools for LaTeX (JAW)
+\etb@tempcnta=\count131
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\logreq\logreq.sty"
+Package: logreq 2010/08/04 v1.0 xml request logger
+\lrq@indent=\count132
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\logreq\logreq.def"
+File: logreq.def 2010/08/04 v1.0 logreq spec v1.0
+))
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\ifthen.sty"
+Package: ifthen 2014/09/29 v1.1c Standard LaTeX ifthen package (DPC)
+)
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\xstring\xstring.sty"
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\xstring\xstring.tex"
+\@xs@message=\write3
+\integerpart=\count133
+\decimalpart=\count134
+)
+Package: xstring 2013/10/13  v1.7c  String manipulations (C Tellechea)
+)
+\c@tabx@nest=\count135
+\c@listtotal=\count136
+\c@listcount=\count137
+\c@liststart=\count138
+\c@liststop=\count139
+\c@citecount=\count140
+\c@citetotal=\count141
+\c@multicitecount=\count142
+\c@multicitetotal=\count143
+\c@instcount=\count144
+\c@maxnames=\count145
+\c@minnames=\count146
+\c@maxitems=\count147
+\c@minitems=\count148
+\c@citecounter=\count149
+\c@savedcitecounter=\count150
+\c@uniquelist=\count151
+\c@uniquename=\count152
+\c@refsection=\count153
+\c@refsegment=\count154
+\c@maxextratitle=\count155
+\c@maxextratitleyear=\count156
+\c@maxextrayear=\count157
+\c@maxextraalpha=\count158
+\c@abbrvpenalty=\count159
+\c@highnamepenalty=\count160
+\c@lownamepenalty=\count161
+\c@maxparens=\count162
+\c@parenlevel=\count163
+\blx@tempcnta=\count164
+\blx@tempcntb=\count165
+\blx@tempcntc=\count166
+\blx@maxsection=\count167
+\blx@maxsegment@0=\count168
+\blx@notetype=\count169
+\blx@parenlevel@text=\count170
+\blx@parenlevel@foot=\count171
+\blx@sectionciteorder@0=\count172
+\labelnumberwidth=\skip65
+\labelalphawidth=\skip66
+\biblabelsep=\skip67
+\bibitemsep=\skip68
+\bibnamesep=\skip69
+\bibinitsep=\skip70
+\bibparsep=\skip71
+\bibhang=\skip72
+\blx@bcfin=\read1
+\blx@bcfout=\write4
+\c@mincomprange=\count173
+\c@maxcomprange=\count174
+\c@mincompwidth=\count175
+Package biblatex Info: Trying to load biblatex default data model...
+Package biblatex Info: ... file 'blx-dm.def' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\blx-dm.def")
+Package biblatex Info: Trying to load biblatex style data model...
+Package biblatex Info: ... file 'numeric-comp.dbx' not found.
+Package biblatex Info: Trying to load biblatex custom data model...
+Package biblatex Info: ... file 'biblatex-dm.cfg' not found.
+\c@afterword=\count176
+\c@savedafterword=\count177
+\c@annotator=\count178
+\c@savedannotator=\count179
+\c@author=\count180
+\c@savedauthor=\count181
+\c@bookauthor=\count182
+\c@savedbookauthor=\count183
+\c@commentator=\count184
+\c@savedcommentator=\count185
+\c@editor=\count186
+\c@savededitor=\count187
+\c@editora=\count188
+\c@savededitora=\count189
+\c@editorb=\count190
+\c@savededitorb=\count191
+\c@editorc=\count192
+\c@savededitorc=\count193
+\c@foreword=\count194
+\c@savedforeword=\count195
+\c@holder=\count196
+\c@savedholder=\count197
+\c@introduction=\count198
+\c@savedintroduction=\count199
+\c@namea=\count266
+\c@savednamea=\count267
+\c@nameb=\count268
+\c@savednameb=\count269
+\c@namec=\count270
+\c@savednamec=\count271
+\c@translator=\count272
+\c@savedtranslator=\count273
+\c@shortauthor=\count274
+\c@savedshortauthor=\count275
+\c@shorteditor=\count276
+\c@savedshorteditor=\count277
+\c@labelname=\count278
+\c@savedlabelname=\count279
+\c@institution=\count280
+\c@savedinstitution=\count281
+\c@lista=\count282
+\c@savedlista=\count283
+\c@listb=\count284
+\c@savedlistb=\count285
+\c@listc=\count286
+\c@savedlistc=\count287
+\c@listd=\count288
+\c@savedlistd=\count289
+\c@liste=\count290
+\c@savedliste=\count291
+\c@listf=\count292
+\c@savedlistf=\count293
+\c@location=\count294
+\c@savedlocation=\count295
+\c@organization=\count296
+\c@savedorganization=\count297
+\c@origlocation=\count298
+\c@savedoriglocation=\count299
+\c@origpublisher=\count300
+\c@savedorigpublisher=\count301
+\c@publisher=\count302
+\c@savedpublisher=\count303
+\c@language=\count304
+\c@savedlanguage=\count305
+\c@pageref=\count306
+\c@savedpageref=\count307
+\shorthandwidth=\skip73
+\shortjournalwidth=\skip74
+\shortserieswidth=\skip75
+\shorttitlewidth=\skip76
+\shortauthorwidth=\skip77
+\shorteditorwidth=\skip78
+Package biblatex Info: Trying to load compatibility code...
+Package biblatex Info: ... file 'blx-compat.def' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\blx-compat.def"
+File: blx-compat.def 2016/05/14 v3.4 biblatex compatibility (PK/JW/AB)
+)
+Package biblatex Info: Trying to load generic definitions...
+Package biblatex Info: ... file 'biblatex.def' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\biblatex.def"
+File: biblatex.def 2016/05/14 v3.4 biblatex compatibility (PK/JW/AB)
+\c@textcitecount=\count308
+\c@textcitetotal=\count309
+\c@textcitemaxnames=\count310
+\c@biburlnumpenalty=\count311
+\c@biburlucpenalty=\count312
+\c@biburllcpenalty=\count313
+\c@smartand=\count314
+)
+Package biblatex Info: Trying to load bibliography style 'numeric-comp'...
+Package biblatex Info: ... file 'numeric-comp.bbx' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\bbx\numeric-comp.bbx"
+File: numeric-comp.bbx 2016/05/14 v3.4 biblatex bibliography style (PK/JW/AB)
+Package biblatex Info: Trying to load bibliography style 'numeric'...
+Package biblatex Info: ... file 'numeric.bbx' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\bbx\numeric.bbx"
+File: numeric.bbx 2016/05/14 v3.4 biblatex bibliography style (PK/JW/AB)
+Package biblatex Info: Trying to load bibliography style 'standard'...
+Package biblatex Info: ... file 'standard.bbx' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\bbx\standard.bbx"
+File: standard.bbx 2016/05/14 v3.4 biblatex bibliography style (PK/JW/AB)
+\c@bbx:relatedcount=\count315
+\c@bbx:relatedtotal=\count316
+)))
+Package biblatex Info: Trying to load citation style 'numeric-comp'...
+Package biblatex Info: ... file 'numeric-comp.cbx' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\cbx\numeric-comp.cbx"
+File: numeric-comp.cbx 2016/05/14 v3.4 biblatex citation style (PK/JW/AB)
+\c@cbx@tempcnta=\count317
+\c@cbx@tempcntb=\count318
+Package biblatex Info: Redefining '\cite'.
+Package biblatex Info: Redefining '\parencite'.
+Package biblatex Info: Redefining '\footcite'.
+Package biblatex Info: Redefining '\footcitetext'.
+Package biblatex Info: Redefining '\smartcite'.
+Package biblatex Info: Redefining '\supercite'.
+Package biblatex Info: Redefining '\textcite'.
+Package biblatex Info: Redefining '\textcites'.
+Package biblatex Info: Redefining '\cites'.
+Package biblatex Info: Redefining '\parencites'.
+Package biblatex Info: Redefining '\smartcites'.
+)
+Package biblatex Info: Trying to load configuration file...
+Package biblatex Info: ... file 'biblatex.cfg' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\biblatex.cfg"
+File: biblatex.cfg 
+))
+Package biblatex Info: Trying to load language 'english'...
+Package biblatex Info: ... file 'english.lbx' found.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\biblatex\lbx\english.lbx"
+File: english.lbx 2016/05/14 v3.4 biblatex localization (PK/JW/AB)
+)
+
+Package biblatex Warning: 'babel/polyglossia' detected but 'csquotes' missing.
+(biblatex)                Loading 'csquotes' recommended.
+
+\@quotelevel=\count319
+\@quotereset=\count320
+("Calibration of RGB LED.aux")
+\openout1 = `"Calibration of RGB LED.aux"'.
+
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 84.
+LaTeX Font Info:    ... okay on input line 84.
+LaTeX Font Info:    Try loading font information for T1+pplx on input line 84.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\t1pplx.fd"
+File: t1pplx.fd 2004/09/06 font definitions for T1/pplx.
+)
+\big@size=\dimen159
+LaTeX Info: Redefining \microtypecontext on input line 84.
+Package microtype Info: Generating PDF output.
+Package microtype Info: Character protrusion enabled (level 2).
+Package microtype Info: Using default protrusion set `alltext'.
+Package microtype Info: Automatic font expansion enabled (level 2),
+(microtype)             stretch: 20, shrink: 20, step: 1, non-selected.
+Package microtype Info: Using default expansion set `basictext'.
+Package microtype Info: No adjustment of tracking.
+Package microtype Info: No adjustment of interword spacing.
+Package microtype Info: No adjustment of character kerning.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\microtype\mt-ppl.cfg"
+File: mt-ppl.cfg 2005/11/16 v1.6 microtype config. file: Palatino (RS)
+)
+*geometry* driver: auto-detecting
+*geometry* detected driver: pdftex
+*geometry* verbose mode - [ preamble ] result:
+* driver: pdftex
+* paper: <default>
+* layout: <same size as paper>
+* layoutoffset:(h,v)=(0.0pt,0.0pt)
+* hratio: 1:1
+* modes: twoside 
+* h-part:(L,W,R)=(92.14519pt, 430.00462pt, 92.14519pt)
+* v-part:(T,H,B)=(91.04881pt, 608.5238pt, 95.39737pt)
+* \paperwidth=614.295pt
+* \paperheight=794.96999pt
+* \textwidth=430.00462pt
+* \textheight=608.5238pt
+* \oddsidemargin=19.8752pt
+* \evensidemargin=19.8752pt
+* \topmargin=-18.22118pt
+* \headheight=12.0pt
+* \headsep=25.0pt
+* \topskip=10.0pt
+* \footskip=30.0pt
+* \marginparwidth=48.0pt
+* \marginparsep=10.0pt
+* \columnsep=20.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
+* \hoffset=0.0pt
+* \voffset=0.0pt
+* \mag=1000
+* \@twocolumntrue
+* \@twosidetrue
+* \@mparswitchtrue
+* \@reversemarginfalse
+* (1in=72.27pt=25.4mm, 1cm=28.453pt)
+
+Package caption Info: Begin \AtBeginDocument code.
+Package caption Info: hyperref package is loaded.
+Package caption Info: End \AtBeginDocument code.
+\AtBeginShipoutBox=\box30
+Package hyperref Info: Link coloring OFF on input line 84.
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\hyperref\nameref.sty"
+Package: nameref 2012/10/27 v2.43 Cross-referencing by name of section
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\generic\oberdiek\gettitlestring.sty"
+Package: gettitlestring 2010/12/03 v1.4 Cleanup title references (HO)
+)
+\c@section@level=\count321
+)
+LaTeX Info: Redefining \ref on input line 84.
+LaTeX Info: Redefining \pageref on input line 84.
+LaTeX Info: Redefining \nameref on input line 84.
+
+("Calibration of RGB LED.out") ("Calibration of RGB LED.out")
+\@outlinefile=\write5
+\openout5 = `"Calibration of RGB LED.out"'.
+
+Package biblatex Info: No input encoding detected.
+(biblatex)             Assuming 'ascii'.
+Package biblatex Info: Automatic encoding selection.
+(biblatex)             Assuming data encoding 'ascii'.
+\openout4 = `"Calibration of RGB LED.bcf"'.
+
+Package biblatex Info: Trying to load bibliographic data...
+Package biblatex Info: ... file '"Calibration of RGB LED".bbl' found.
+
+("Calibration of RGB LED.bbl")
+Package biblatex Info: Reference section=0 on input line 84.
+Package biblatex Info: Reference segment=0 on input line 84.
+LaTeX Font Info:    Font shape `T1/pplx/bx/n' in size <24.88> not available
+(Font)              Font shape `T1/pplx/b/n' tried instead on input line 88.
+LaTeX Font Info:    Try loading font information for OT1+pplx on input line 88.
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1pplx.fd"
+File: ot1pplx.fd 2004/09/06 font definitions for OT1/pplx.
+)
+LaTeX Font Info:    Try loading font information for OML+zplm on input line 88.
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\omlzplm.fd"
+File: omlzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OML/zplm.
+)
+LaTeX Font Info:    Try loading font information for OMS+zplm on input line 88.
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\omszplm.fd"
+File: omszplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMS/zplm.
+)
+LaTeX Font Info:    Try loading font information for OMX+zplm on input line 88.
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\omxzplm.fd"
+File: omxzplm.fd 2002/09/08 Fontinst v1.914 font definitions for OMX/zplm.
+)
+LaTeX Font Info:    Try loading font information for OT1+zplm on input line 88.
+
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\psnfss\ot1zplm.fd"
+File: ot1zplm.fd 2002/09/08 Fontinst v1.914 font definitions for OT1/zplm.
+)
+Package microtype Info: Loading generic settings for font family
+(microtype)             `zplm' (encoding: OT1).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+Package microtype Info: Character `029' is missing
+(microtype)             in font `T1/pplx/m/sc/12'.
+(microtype)             Ignoring protrusion settings for this character.
+LaTeX Font Info:    Font shape `T1/pplx/bx/n' in size <10> not available
+(Font)              Font shape `T1/pplx/b/n' tried instead on input line 88.
+Package microtype Info: Character `029' is missing
+(microtype)             in font `T1/pplx/m/sc/10'.
+(microtype)             Ignoring protrusion settings for this character.
+LaTeX Font Info:    Try loading font information for T1+cmtt on input line 96.
+
+("C:\Program Files (x86)\MiKTeX 2.9\tex\latex\base\t1cmtt.fd"
+File: t1cmtt.fd 2014/09/29 v2.5h Standard LaTeX font definitions
+)
+Package microtype Info: Loading generic settings for font family
+(microtype)             `cmtt' (encoding: T1).
+(microtype)             For optimal results, create family-specific settings.
+(microtype)             See the microtype manual for details.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 97.
+ [1{C:/Users/jaakko/AppData/Local/MiKTeX/2.9/pdftex/config/pdftex.map}
+
+
+
+]
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 97.
+
+("Calibration of RGB LED.aux")
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 97.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 97.
+Package rerunfilecheck Info: File `"Calibration of RGB LED".out' has not change
+d.
+(rerunfilecheck)             Checksum: 1DB6ACF0CA858A323D5862A2C7FCFE6D;48.
+Package logreq Info: Writing requests to '"Calibration of RGB LED".run.xml'.
+\openout1 = `"Calibration of RGB LED.run.xml"'.
+
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 97.
+ ) 
+Here is how much of TeX's memory you used:
+ 15156 strings out of 493634
+ 252650 string characters out of 3141311
+ 712942 words of memory out of 3000000
+ 18245 multiletter control sequences out of 15000+200000
+ 52235 words of font info for 142 fonts, out of 3000000 for 9000
+ 1025 hyphenation exceptions out of 8191
+ 43i,8n,45p,1719b,1460s stack positions out of 5000i,500n,10000p,200000b,50000s
+ <C:\Users\jaakko\AppData\Local\MiKTeX\2.9\fonts\pk\ljfour\jknappen\ec\dpi600
+\ectt1000.pk>{C:/Program Files (x86)/MiKTeX 2.9/fonts/enc/dvips/fontname/8r.enc
+}<C:/Program Files (x86)/MiKTeX 2.9/fonts/type1/public/fpl/fplrc8a.pfb><C:/Prog
+ram Files (x86)/MiKTeX 2.9/fonts/type1/urw/palatino/uplb8a.pfb><C:/Program File
+s (x86)/MiKTeX 2.9/fonts/type1/urw/palatino/uplr8a.pfb><C:/Program Files (x86)/
+MiKTeX 2.9/fonts/type1/urw/palatino/uplri8a.pfb>
+Output written on "Calibration of RGB LED.pdf" (1 page, 63971 bytes).
+PDF statistics:
+ 57 PDF objects out of 1000 (max. 8388607)
+ 5 named destinations out of 1000 (max. 500000)
+ 52745 words of extra memory for PDF output out of 61914 (max. 10000000)
+

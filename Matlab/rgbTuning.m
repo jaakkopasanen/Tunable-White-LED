@@ -1,4 +1,5 @@
-clear; clc
+%clear; clc
+clc
 load('cie.mat', 'cieSpectralLuminousEfficiency');
 tic
 % Wavelengths
@@ -7,10 +8,12 @@ L = 380:5:780;
 
 % LEDs
 % Parameters for these shold come from rgbCalibration.m
-%red = gaussmf(L, [10/2.355 (627+rand()*5)])*(1+rand()*0.5);
-%green = gaussmf(L, [10/2.355 (525+rand()*5)])*(1+rand()*0.5);
-%blue = gaussmf(L, [10/2.355 (465+rand()*5)])*(1+rand()*0.5);
-
+%{
+red = gaussmf(L, [10/2.355 (627+rand()*5)])*(1+rand()*0.5);
+green = gaussmf(L, [10/2.355 (525+rand()*5)])*(1+rand()*0.5);
+blue = gaussmf(L, [10/2.355 (465+rand()*5)])*(1+rand()*0.5);
+%}
+%{
 red = gaussmf(L, [5/2.355 630]); redL = 11;
 green = gaussmf(L, [5/2.355 525]); greenL = 100;
 blue = gaussmf(L, [5/2.355 465]); blueL = 20;
@@ -23,6 +26,7 @@ powers = powers * (1 / max(powers));
 red = red * powers(1);
 green = green * powers(2);
 blue = blue * powers(3);
+%}
 
 % Led u'v' coordinates
 sourceUvs = [
@@ -153,12 +157,19 @@ hold on;
 plot(sourceUvs(:,1), sourceUvs(:,2), 'k');
 err = [];
 testPoints = [
-    0.205 0.562
-    0.079 0.443
-    0.334 0.292
-];
+    0.478 0.522
+    0.075 0.558
+    0.177 0.142
+    0.204 0.551
+    0.094 0.446
+    0.328 0.301
+    0.359 0.478
+    0.117 0.517
+    0.200 0.333
+    0.195 0.465
+]
 
-for i = 1:3
+for i = 1:10
     % Test point
     %target = [rand*0.55 rand*0.6];
     target = testPoints(i,:);
@@ -170,11 +181,11 @@ for i = 1:3
     
     % Find mixing coefficients
     %disp('-- RED --');
-    r = findLevel2(target, sourceUvs(1,:), sourceUvs(2,:), sourceUvs(3,:), rgFit, gbFit);
+    r = findCoefficient(target, sourceUvs(1,:), sourceUvs(2,:), sourceUvs(3,:), rgFit, gbFit);
     %disp('-- GREEN --');
-    g = findLevel2(target, sourceUvs(2,:), sourceUvs(3,:), sourceUvs(1,:), gbFit, brFit);
+    g = findCoefficient(target, sourceUvs(2,:), sourceUvs(3,:), sourceUvs(1,:), gbFit, brFit);
     %disp('-- BLUE --');
-    b = findLevel2(target, sourceUvs(3,:), sourceUvs(1,:), sourceUvs(2,:), brFit, rgFit);
+    b = findCoefficient(target, sourceUvs(3,:), sourceUvs(1,:), sourceUvs(2,:), brFit, rgFit);
     
     rgb = [r g b];
     rgb = rgb .* (1/max(rgb));

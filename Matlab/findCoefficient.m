@@ -1,5 +1,5 @@
-function [ level, dR, dL ] = findLevel2( PT, P0, P1, P2, rf, lf )
-%FINDLEVEL2 Find level for led
+function [ level, dR, dL ] = findCoefficient( PT, P0, P1, P2, rf, lf )
+%FINDCOEFFICEINT Find mixing coefficient for led
 
 PTu = PT(1);
 PTv = PT(2);

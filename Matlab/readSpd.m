@@ -26,6 +26,8 @@ end
 y = y - y(1);
 y(y < 0) = 0;
 
+y = y .* (1/max(y));
+
 % Downsample
 L = 380:5:780;
 spd = zeros(1, length(L));
@@ -38,9 +40,10 @@ for i = 1:length(L)
 end
 
 % Normalize
-spd = spd .* (1 / max(spd));
+%spd = spd .* (1 / max(spd));
 
-plot(L,spd,'-o');
+
+plot(L,spd,'o-');
 grid on;
 axis([380 780 0 1])
 xlabel('Wavelength (nm)');

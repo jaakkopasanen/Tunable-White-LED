@@ -1,10 +1,20 @@
 clear;
-spd = readSpd('HR4C13841_10-17-37-728.txt');
-
+spd = readSpd('HR4C13841_10-33-11-877.txt');
 L = 380:5:780;
-blue = gaussmf(L, [10 454])*0.915 + gaussmf(L, [25 470])*0.15;
-green = gaussmf(L, [10 511])*0.45 + gaussmf(L, [20 527])*0.23;
-red = gaussmf(L, [10 630])*0.20 + gaussmf(L, [22 620])*0.03;
+
+rgbFit = fitGaussianToRgb(L, spd);
+coeffs = coeffvalues(rgbFit);
+a1 = coeffs(1); b1 = coeffs(2); c1 = coeffs(3);
+a2 = coeffs(4); b2 = coeffs(5); c2 = coeffs(6);
+a3 = coeffs(7); b3 = coeffs(8); c3 = coeffs(9);
+a4 = coeffs(10); b4 = coeffs(11); c4 = coeffs(12);
+a5 = coeffs(13); b5 = coeffs(14); c5 = coeffs(15);
+a6 = coeffs(16); b6 = coeffs(17); c6 = coeffs(18);
+
+x = L;
+blue = a1.*exp(-((x-b1)./c1).^2) + a2.*exp(-((x-b2)./c2).^2);
+green = a3.*exp(-((x-b3)./c3).^2) + a4.*exp(-((x-b4)./c4).^2);
+red = a5.*exp(-((x-b5)./c5).^2) + a6.*exp(-((x-b6)./c6).^2);
 white = red+green+blue;
 
 plot(L,spd,'k', L,red,'r', L,green,'g', L,blue,'b', L,white,'ok')
